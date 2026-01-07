@@ -1,0 +1,23 @@
+{
+  "user_context": {
+    "currency": "CNY",
+    "location": "Shanghai",
+    "profession": "Developer",
+    "monthly_income_approx": 25000
+  },
+  "cognitive_anchors": {
+    "price_sensitivity": "medium",
+    "subscription_benchmark": {
+      "name": "Bilibili 大会员",
+      "cost": 25
+    },
+    "coffee_benchmark": {
+      "name": "瑞幸咖啡",
+      "cost": 15
+    }
+  },
+  "system_rules": {
+    "auto_judge": false,
+    "show_original": true
+  }
+}

@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+.venv/
+*.pyc
+
+# Editors
+.idea/
+.vscode/
+
+# Logs / temp
+*.log
+tmp/
+
+# Build outputs (if any)
+dist/
+build/
+
+# Local source image for icons (do not commit originals)
+icons/source_tower.*

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Babel Tower • Options</title>
+    <style>
+      body { font: 14px/1.4 -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 16px; color: #222; }
+      h1 { font-size: 18px; margin: 0 0 12px; }
+      .field { margin: 12px 0; }
+      label { display: block; margin-bottom: 6px; color: #555; }
+      select { padding: 6px 8px; min-width: 240px; }
+      button { padding: 6px 10px; margin-right: 8px; }
+      .row { display: flex; align-items: center; gap: 8px; }
+      .muted { color: #888; font-size: 12px; }
+      .ok { color: #0a7; }
+      .warn { color: #c60; }
+      hr { border: none; height: 1px; background: #eee; margin: 16px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>Babel Tower 设置</h1>
+
+    <div class="field">
+      <label for="targetCurrency">目标货币（用于换算展示）</label>
+      <div class="row">
+        <select id="targetCurrency"></select>
+        <button id="saveBtn">保存</button>
+        <button id="resetBtn">重置为 Profile</button>
+        <span id="saveStatus" class="muted"></span>
+      </div>
+      <div class="muted">提示：这里的选择将覆盖 profile.json 中的 user_context.currency。</div>
+    </div>
+
+    <hr />
+
+    <div class="field">
+      <label>汇率数据</label>
+      <div class="row">
+        <button id="refreshFxBtn">立即刷新</button>
+        <span id="fxStatus" class="muted">正在读取…</span>
+      </div>
+    </div>
+
+    <hr />
+
+    <div class="field">
+      <label for="anchorName">认知单位（自定义）</label>
+      <div class="row" style="flex-wrap: wrap; gap: 8px 12px;">
+        <input id="anchorName" placeholder="例如：奶茶 / 地铁" style="min-width: 220px; padding: 6px 8px;" />
+        <input id="anchorCost" type="number" step="0.01" min="0" placeholder="单位成本" style="width: 140px; padding: 6px 8px;" />
+        <span class="muted">成本货币：<span id="anchorCurrencyHint">CNY</span></span>
+      </div>
+      <div class="row" style="margin-top: 8px;">
+        <button id="saveAnchorBtn">保存单位</button>
+        <button id="clearAnchorBtn">清除单位</button>
+        <span id="anchorStatus" class="muted"></span>
+      </div>
+      <div class="muted">说明：单位成本默认按目标货币计价；若之后切换目标货币，系统会按实时汇率自动换算。</div>
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+  </html>
