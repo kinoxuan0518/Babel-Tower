@@ -44,6 +44,7 @@ let quietMode = true;
 let pageContext = null;
 let pageIntent = null; // { category, user_goal }
 let showTranslation = true;
+let translationLang = 'zh';
 
 // -------------------- Profile 加载 --------------------
 async function loadProfile() {
@@ -63,7 +64,7 @@ loadProfile();
 // 从 storage 加载实时汇率映射（fxToCNY）
 function loadFxFromStorageAndSettings() {
   try {
-    chrome.storage.local.get(['fxToCNY','bt_targetCurrency','bt_anchor_unit','bt_explain_enabled','bt_explain_lang','bt_llm','bt_user_physical','bt_llm_prefer','bt_quiet_mode','bt_show_translation'], (res) => {
+    chrome.storage.local.get(['fxToCNY','bt_targetCurrency','bt_anchor_unit','bt_explain_enabled','bt_explain_lang','bt_llm','bt_user_physical','bt_llm_prefer','bt_quiet_mode','bt_show_translation','bt_translation_lang'], (res) => {
       if (res && res.fxToCNY) {
         userProfile = userProfile || {};
         userProfile.fx = Object.assign({}, userProfile.fx || {}, res.fxToCNY);
@@ -91,6 +92,7 @@ function loadFxFromStorageAndSettings() {
       if (typeof res.bt_llm_prefer === 'boolean') llmPrefer = res.bt_llm_prefer;
       if (typeof res.bt_quiet_mode === 'boolean') quietMode = res.bt_quiet_mode;
       if (typeof res.bt_show_translation === 'boolean') showTranslation = res.bt_show_translation;
+      if (res.bt_translation_lang) translationLang = String(res.bt_translation_lang);
     });
   } catch (e) {
     // ignore if storage not available yet
@@ -139,6 +141,9 @@ try {
     if (area === 'local' && changes.bt_show_translation) {
       showTranslation = !!changes.bt_show_translation.newValue;
     }
+    if (area === 'local' && changes.bt_translation_lang) {
+      translationLang = String(changes.bt_translation_lang.newValue || 'zh');
+    }
   });
 } catch (e) {
   // ignore in case chrome.storage not available
@@ -178,7 +183,7 @@ const handleSelectionEvent = async (event) => {
       // 价格场景：默认使用启发式（更快更稳），无需 LLM
       result = generateHeuristic(price.amount, price.currency);
       if (useLLM) {
-        result.translation = await generateTranslationWithLLM(selectedText, explainLang);
+        result.translation = await generateTranslationWithLLM(selectedText, translationLang);
       }
     } else if (feat) {
       if (useLLM) {
@@ -192,14 +197,14 @@ const handleSelectionEvent = async (event) => {
         result = await generateCognitiveWithLLM({ selectedText, task: 'size', price: null, sizeCtx, lang: explainLang });
       } else {
         result = generatePackHeuristic(sizeCtx);
-        if (useLLM) result.translation = await generateTranslationWithLLM(selectedText, explainLang);
+        if (useLLM) result.translation = await generateTranslationWithLLM(selectedText, translationLang);
       }
     } else if (sizeCtx) {
       if (useLLM && llmPrefer) {
         result = await generateCognitiveWithLLM({ selectedText, task: 'size', price: null, sizeCtx, lang: explainLang });
       } else {
         result = generateSizeHeuristic(sizeCtx);
-        if (useLLM) result.translation = await generateTranslationWithLLM(selectedText, explainLang);
+        if (useLLM) result.translation = await generateTranslationWithLLM(selectedText, translationLang);
       }
     } else if (explainEnabled && shouldExplain(selectedText)) {
       if (useLLM) {

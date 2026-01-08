@@ -53,6 +53,7 @@ async function init(){
   const llmPrefer = $('llmPrefer');
   const testLlmBtn = $('testLlmBtn');
   const showTranslation = $('showTranslation');
+  const translationLang = $('translationLang');
 
   // Provider presets (OpenAI-compatible)
   const LLM_PRESETS = {
@@ -88,7 +89,7 @@ async function init(){
   // load current setting
   chrome.storage.local.get([
     'bt_targetCurrency','fx_lastUpdated','fx_source','fxToCNY','fx_fetching','fx_fetch_error',
-    'bt_anchor_unit', 'bt_explain_enabled', 'bt_explain_lang', 'bt_llm', 'bt_user_physical', 'bt_llm_prefer', 'bt_quiet_mode', 'bt_show_translation'
+    'bt_anchor_unit', 'bt_explain_enabled', 'bt_explain_lang', 'bt_llm', 'bt_user_physical', 'bt_llm_prefer', 'bt_quiet_mode', 'bt_show_translation', 'bt_translation_lang'
   ], (res) => {
     const cur = (res.bt_targetCurrency || '').toUpperCase();
     renderCurrencyOptions(sel, cur || 'CNY');
@@ -132,6 +133,7 @@ async function init(){
     setLlmInputsEnabled(llmEnable.checked);
     llmPrefer.checked = (typeof res.bt_llm_prefer === 'boolean') ? res.bt_llm_prefer : true;
     showTranslation.checked = (typeof res.bt_show_translation === 'boolean') ? res.bt_show_translation : true;
+    translationLang.value = res.bt_translation_lang || res.bt_explain_lang || 'zh';
 
     // 身体数据
     const p = res.bt_user_physical || {};
@@ -283,6 +285,11 @@ async function init(){
 
   showTranslation.addEventListener('change', () => {
     chrome.storage.local.set({ bt_show_translation: !!showTranslation.checked });
+  });
+
+  translationLang.addEventListener('change', () => {
+    const v = translationLang.value || 'zh';
+    chrome.storage.local.set({ bt_translation_lang: v });
   });
 
   // 身体数据保存/清除
