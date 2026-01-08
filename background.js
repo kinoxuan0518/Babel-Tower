@@ -100,6 +100,7 @@ chrome.runtime.onInstalled.addListener(async () => {
   // prime fetch and schedule
   await fetchAndStoreFx();
   chrome.alarms.create(FX_ALARM, { periodInMinutes: FX_REFRESH_MINUTES });
+  try { chrome.contextMenus.create({ id: 'bt_explain_selection', title: 'Babel Tower: 解释选中内容', contexts: ['selection'] }); } catch (e) {}
 });
 
 chrome.runtime.onStartup.addListener(async () => {
@@ -131,9 +132,67 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     });
     return true;
   }
+  if (msg && msg.type === 'bt_test_llm') {
+    const cfg = (msg && msg.cfg) || {};
+    const endpoint = cfg.endpoint;
+    const model = cfg.model || 'gpt-4o-mini';
+    const api_key = cfg.api_key;
+    if (!endpoint || !api_key) { try { sendResponse({ ok: false, error: 'missing endpoint or key' }); } catch {}; return false; }
+    const body = {
+      model,
+      messages: [
+        { role: 'system', content: 'Return strictly JSON: {"text": string, "anchor": string}. Keep it very short.' },
+        { role: 'user', content: 'Ping for capability test' }
+      ],
+      temperature: 0.1
+    };
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort('timeout'), 12000);
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${api_key}` },
+      body: JSON.stringify(body),
+      signal: ctrl.signal
+    }).then(async (res) => {
+      clearTimeout(timer);
+      if (!res.ok) {
+        const t = await res.text().catch(() => '');
+        try { sendResponse({ ok: false, error: `HTTP ${res.status}: ${t.slice(0,120)}` }); } catch {}
+        return;
+      }
+      const data = await res.json();
+      const content = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      let sample = '';
+      try {
+        const parsed = JSON.parse((content || '').trim());
+        sample = parsed && parsed.text ? String(parsed.text).slice(0, 100) : (content || '').slice(0, 60);
+      } catch (e) {
+        sample = (content || '').slice(0, 60);
+      }
+      try { sendResponse({ ok: true, sample }); } catch {}
+    }).catch((err) => {
+      clearTimeout(timer);
+      try { sendResponse({ ok: false, error: String(err && err.message || err) }); } catch {}
+    });
+    return true;
+  }
 });
 
-// Clicking the toolbar icon opens options
-chrome.action.onClicked.addListener(() => {
-  chrome.runtime.openOptionsPage();
+// Clicking the toolbar icon: if quiet mode, analyze selection; else open options
+chrome.action.onClicked.addListener((tab) => {
+  chrome.storage.local.get(['bt_quiet_mode'], (res) => {
+    if (res && res.bt_quiet_mode && tab && tab.id) {
+      chrome.tabs.sendMessage(tab.id, { type: 'bt_analyze_selection' });
+    } else {
+      chrome.runtime.openOptionsPage();
+    }
+  });
+});
+
+// Context menu click
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'bt_explain_selection' && tab && tab.id) {
+    const text = info.selectionText || '';
+    chrome.tabs.sendMessage(tab.id, { type: 'bt_analyze_selection', text });
+  }
 });

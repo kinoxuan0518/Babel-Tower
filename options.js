@@ -26,15 +26,70 @@ async function init(){
   const saveStatus = $('saveStatus');
   const refreshFxBtn = $('refreshFxBtn');
   const fxStatus = $('fxStatus');
+  const explainToggle = $('explainToggle');
+  const explainLang = $('explainLang');
+  const physHeight = $('physHeight');
+  const physWeight = $('physWeight');
+  const physFoot = $('physFoot');
+  const physFit = $('physFit');
+  const savePhysBtn = $('savePhysBtn');
+  const clearPhysBtn = $('clearPhysBtn');
+  const physStatus = $('physStatus');
+  const quietMode = $('quietMode');
   const anchorName = $('anchorName');
   const anchorCost = $('anchorCost');
   const anchorCurrencyHint = $('anchorCurrencyHint');
   const saveAnchorBtn = $('saveAnchorBtn');
   const clearAnchorBtn = $('clearAnchorBtn');
   const anchorStatus = $('anchorStatus');
+  const llmEnable = $('llmEnable');
+  const llmEndpoint = $('llmEndpoint');
+  const llmModel = $('llmModel');
+  const llmKey = $('llmKey');
+  const llmProvider = $('llmProvider');
+  const saveLlmBtn = $('saveLlmBtn');
+  const clearLlmBtn = $('clearLlmBtn');
+  const llmStatus = $('llmStatus');
+  const llmPrefer = $('llmPrefer');
+  const testLlmBtn = $('testLlmBtn');
+  const showTranslation = $('showTranslation');
+
+  // Provider presets (OpenAI-compatible)
+  const LLM_PRESETS = {
+    openai: {
+      name: 'OpenAI', endpoint: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o-mini'
+    },
+    deepseek: {
+      name: 'DeepSeek', endpoint: 'https://api.deepseek.com/chat/completions', model: 'deepseek-chat'
+    },
+    moonshot: {
+      name: 'Moonshot', endpoint: 'https://api.moonshot.cn/v1/chat/completions', model: 'moonshot-v1-8k'
+    },
+    groq: {
+      name: 'Groq', endpoint: 'https://api.groq.com/openai/v1/chat/completions', model: 'llama-3.1-70b-versatile'
+    },
+    together: {
+      name: 'Together', endpoint: 'https://api.together.xyz/v1/chat/completions', model: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'
+    },
+    perplexity: {
+      name: 'Perplexity', endpoint: 'https://api.perplexity.ai/chat/completions', model: 'pplx-70b-online'
+    },
+    custom: { name: '自定义', endpoint: '', model: '' }
+  };
+
+  function applyPreset(providerKey) {
+    const p = LLM_PRESETS[providerKey] || LLM_PRESETS.custom;
+    if (providerKey !== 'custom') {
+      llmEndpoint.value = p.endpoint;
+      llmModel.value = p.model;
+    }
+  }
 
   // load current setting
-  chrome.storage.local.get(['bt_targetCurrency','fx_lastUpdated','fx_source','fxToCNY','fx_fetching','fx_fetch_error','bt_anchor_unit'], (res) => {
+  chrome.storage.local.get([
+    'bt_targetCurrency','fx_lastUpdated','fx_source','fxToCNY','fx_fetching','fx_fetch_error',
+    'bt_anchor_unit', 'bt_explain_enabled', 'bt_explain_lang', 'bt_llm', 'bt_user_physical', 'bt_llm_prefer', 'bt_quiet_mode', 'bt_show_translation'
+  ], (res) => {
     const cur = (res.bt_targetCurrency || '').toUpperCase();
     renderCurrencyOptions(sel, cur || 'CNY');
     anchorCurrencyHint.textContent = (cur || 'CNY');
@@ -60,6 +115,33 @@ async function init(){
         anchorCurrencyHint.textContent = res.bt_anchor_unit.currency;
       }
     }
+    // 名词解释开关/语言
+    explainToggle.checked = (typeof res.bt_explain_enabled === 'boolean') ? res.bt_explain_enabled : true;
+    explainLang.value = res.bt_explain_lang || 'zh';
+
+    // LLM 设置
+    const llm = res.bt_llm || {};
+    const hasLLM = !!(llm && llm.endpoint && llm.api_key);
+    llmEnable.checked = hasLLM;
+    // Detect provider by stored provider or endpoint
+    const storedProvider = llm.provider || detectProviderByEndpoint(llm.endpoint);
+    llmProvider.value = storedProvider;
+    if (llm.endpoint) llmEndpoint.value = llm.endpoint; else applyPreset(storedProvider);
+    if (llm.model) llmModel.value = llm.model; else applyPreset(storedProvider);
+    llmKey.value = llm.api_key || '';
+    setLlmInputsEnabled(llmEnable.checked);
+    llmPrefer.checked = (typeof res.bt_llm_prefer === 'boolean') ? res.bt_llm_prefer : true;
+    showTranslation.checked = (typeof res.bt_show_translation === 'boolean') ? res.bt_show_translation : true;
+
+    // 身体数据
+    const p = res.bt_user_physical || {};
+    if (typeof p.height_cm === 'number') physHeight.value = String(p.height_cm);
+    if (typeof p.weight_kg === 'number') physWeight.value = String(p.weight_kg);
+    if (typeof p.foot_length_cm === 'number') physFoot.value = String(p.foot_length_cm);
+    physFit.value = p.preferred_fit || 'regular';
+
+    // Quiet mode
+    quietMode.checked = (typeof res.bt_quiet_mode === 'boolean') ? res.bt_quiet_mode : true;
   });
 
   saveBtn.addEventListener('click', () => {
@@ -100,6 +182,14 @@ async function init(){
     });
   });
 
+  // 名词解释：保存当前开关/语言（即改即存）
+  explainToggle.addEventListener('change', () => {
+    chrome.storage.local.set({ bt_explain_enabled: !!explainToggle.checked });
+  });
+  explainLang.addEventListener('change', () => {
+    chrome.storage.local.set({ bt_explain_lang: explainLang.value || 'zh' });
+  });
+
   saveAnchorBtn.addEventListener('click', () => {
     const name = (anchorName.value || '').trim();
     const cost = parseFloat(anchorCost.value || '');
@@ -134,6 +224,144 @@ async function init(){
       setTimeout(() => { anchorStatus.textContent = ''; anchorStatus.className = 'muted'; }, 1500);
     });
   });
+
+  // LLM 保存/清除
+  function setLlmInputsEnabled(on) {
+    [llmProvider, llmEndpoint, llmModel, llmKey, saveLlmBtn].forEach(el => el.disabled = !on);
+  }
+  llmEnable.addEventListener('change', () => {
+    const on = !!llmEnable.checked;
+    setLlmInputsEnabled(on);
+    if (!on) {
+      chrome.storage.local.remove('bt_llm', () => {
+        llmStatus.textContent = '已关闭并清除自定义 LLM';
+        llmStatus.className = 'muted ok';
+        setTimeout(() => { llmStatus.textContent=''; llmStatus.className='muted'; }, 1500);
+      });
+    }
+  });
+
+  llmProvider.addEventListener('change', () => {
+    applyPreset(llmProvider.value);
+  });
+
+  saveLlmBtn.addEventListener('click', () => {
+    if (!llmEnable.checked) {
+      llmStatus.textContent = '请先开启“使用自定义 LLM”';
+      llmStatus.className = 'muted warn';
+      return;
+    }
+    const provider = llmProvider.value || 'custom';
+    const endpoint = (llmEndpoint.value || '').trim();
+    const model = (llmModel.value || '').trim() || 'gpt-4o-mini';
+    const api_key = (llmKey.value || '').trim();
+    if (!endpoint || !api_key) {
+      llmStatus.textContent = '请填写 Endpoint 与 API Key';
+      llmStatus.className = 'muted warn';
+      return;
+    }
+    chrome.storage.local.set({ bt_llm: { provider, endpoint, model, api_key } }, () => {
+      llmStatus.textContent = '已保存';
+      llmStatus.className = 'muted ok';
+      setTimeout(() => { llmStatus.textContent=''; llmStatus.className='muted'; }, 1500);
+    });
+  });
+
+  clearLlmBtn.addEventListener('click', () => {
+    chrome.storage.local.remove('bt_llm', () => {
+      llmEnable.checked = false;
+      setLlmInputsEnabled(false);
+      llmStatus.textContent = '已清除';
+      llmStatus.className = 'muted ok';
+      setTimeout(() => { llmStatus.textContent=''; llmStatus.className='muted'; }, 1500);
+    });
+  });
+
+  llmPrefer.addEventListener('change', () => {
+    chrome.storage.local.set({ bt_llm_prefer: !!llmPrefer.checked });
+  });
+
+  showTranslation.addEventListener('change', () => {
+    chrome.storage.local.set({ bt_show_translation: !!showTranslation.checked });
+  });
+
+  // 身体数据保存/清除
+  savePhysBtn.addEventListener('click', () => {
+    const height_cm = parseFloat(physHeight.value || '');
+    const weight_kg = parseFloat(physWeight.value || '');
+    const foot_length_cm = parseFloat(physFoot.value || '');
+    const preferred_fit = physFit.value || 'regular';
+    const val = { preferred_fit };
+    if (isFinite(height_cm)) val.height_cm = height_cm;
+    if (isFinite(weight_kg)) val.weight_kg = weight_kg;
+    if (isFinite(foot_length_cm)) val.foot_length_cm = foot_length_cm;
+    chrome.storage.local.set({ bt_user_physical: val }, () => {
+      physStatus.textContent = '已保存';
+      physStatus.className = 'muted ok';
+      setTimeout(() => { physStatus.textContent=''; physStatus.className='muted'; }, 1500);
+    });
+  });
+
+  clearPhysBtn.addEventListener('click', () => {
+    chrome.storage.local.remove('bt_user_physical', () => {
+      physHeight.value = '';
+      physWeight.value = '';
+      physFoot.value = '';
+      physFit.value = 'regular';
+      physStatus.textContent = '已清除';
+      physStatus.className = 'muted ok';
+      setTimeout(() => { physStatus.textContent=''; physStatus.className='muted'; }, 1500);
+    });
+  });
+
+  // Quiet mode toggle
+  quietMode.addEventListener('change', () => {
+    chrome.storage.local.set({ bt_quiet_mode: !!quietMode.checked });
+  });
+
+  testLlmBtn.addEventListener('click', () => {
+    const endpoint = (llmEndpoint.value || '').trim();
+    const model = (llmModel.value || '').trim() || 'gpt-4o-mini';
+    const api_key = (llmKey.value || '').trim();
+    if (!endpoint || !api_key) {
+      llmStatus.textContent = '请填写 Endpoint 与 API Key';
+      llmStatus.className = 'muted warn';
+      return;
+    }
+    llmStatus.textContent = '测试中…';
+    llmStatus.className = 'muted';
+    const timeout = setTimeout(() => {
+      llmStatus.textContent = '测试超时，检查网络或 CORS';
+      llmStatus.className = 'muted warn';
+    }, 15000);
+    chrome.runtime.sendMessage({ type: 'bt_test_llm', cfg: { endpoint, model, api_key } }, (res) => {
+      clearTimeout(timeout);
+      if (chrome.runtime.lastError) {
+        llmStatus.textContent = '发送失败：' + chrome.runtime.lastError.message;
+        llmStatus.className = 'muted warn';
+        return;
+      }
+      if (res && res.ok) {
+        llmStatus.textContent = '测试成功：' + (res.sample || 'ok');
+        llmStatus.className = 'muted ok';
+      } else {
+        llmStatus.textContent = '测试失败：' + (res && res.error || 'unknown');
+        llmStatus.className = 'muted warn';
+      }
+    });
+  });
+
+  function detectProviderByEndpoint(endpoint) {
+    const url = (endpoint || '').toLowerCase();
+    if (!url) return 'openai';
+    if (url.includes('openai.com')) return 'openai';
+    if (url.includes('deepseek.com')) return 'deepseek';
+    if (url.includes('moonshot.cn')) return 'moonshot';
+    if (url.includes('api.groq.com')) return 'groq';
+    if (url.includes('together.xyz')) return 'together';
+    if (url.includes('perplexity.ai')) return 'perplexity';
+    return 'custom';
+  }
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local') {

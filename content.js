@@ -35,6 +35,15 @@ let lastRequestId = 0; // 用于避免竞态条件（后发先至）
 let fxLoaded = false;
 let overrideTargetCurrency = null;
 let customAnchorUnit = null; // { name, cost, currency }
+let explainEnabled = true;
+let explainLang = 'zh';
+let llmOverride = null; // { endpoint, model, api_key }
+let userPhysical = null; // { height_cm, weight_kg, foot_length_cm, preferred_fit }
+let llmPrefer = true;
+let quietMode = true;
+let pageContext = null;
+let pageIntent = null; // { category, user_goal }
+let showTranslation = true;
 
 // -------------------- Profile 加载 --------------------
 async function loadProfile() {
@@ -54,7 +63,7 @@ loadProfile();
 // 从 storage 加载实时汇率映射（fxToCNY）
 function loadFxFromStorageAndSettings() {
   try {
-    chrome.storage.local.get(['fxToCNY','bt_targetCurrency','bt_anchor_unit'], (res) => {
+    chrome.storage.local.get(['fxToCNY','bt_targetCurrency','bt_anchor_unit','bt_explain_enabled','bt_explain_lang','bt_llm','bt_user_physical','bt_llm_prefer','bt_quiet_mode','bt_show_translation'], (res) => {
       if (res && res.fxToCNY) {
         userProfile = userProfile || {};
         userProfile.fx = Object.assign({}, userProfile.fx || {}, res.fxToCNY);
@@ -69,12 +78,26 @@ function loadFxFromStorageAndSettings() {
         customAnchorUnit = res.bt_anchor_unit;
         console.log('Babel Tower: Custom anchor loaded');
       }
+      if (typeof res.bt_explain_enabled === 'boolean') explainEnabled = res.bt_explain_enabled;
+      if (res.bt_explain_lang) explainLang = String(res.bt_explain_lang);
+      if (res && res.bt_llm) {
+        llmOverride = res.bt_llm;
+        console.log('Babel Tower: LLM override loaded');
+      }
+      if (res && res.bt_user_physical) {
+        userPhysical = res.bt_user_physical;
+        console.log('Babel Tower: User physical loaded');
+      }
+      if (typeof res.bt_llm_prefer === 'boolean') llmPrefer = res.bt_llm_prefer;
+      if (typeof res.bt_quiet_mode === 'boolean') quietMode = res.bt_quiet_mode;
+      if (typeof res.bt_show_translation === 'boolean') showTranslation = res.bt_show_translation;
     });
   } catch (e) {
     // ignore if storage not available yet
   }
 }
 loadFxFromStorageAndSettings();
+gatherPageContext();
 
 // 实时监听 FX 更新
 try {
@@ -92,6 +115,29 @@ try {
     if (area === 'local' && changes.bt_anchor_unit) {
       customAnchorUnit = changes.bt_anchor_unit.newValue || null;
       console.log('Babel Tower: Custom anchor changed');
+    }
+    if (area === 'local' && changes.bt_explain_enabled) {
+      explainEnabled = !!changes.bt_explain_enabled.newValue;
+    }
+    if (area === 'local' && changes.bt_explain_lang) {
+      explainLang = String(changes.bt_explain_lang.newValue || 'zh');
+    }
+    if (area === 'local' && changes.bt_llm) {
+      llmOverride = changes.bt_llm.newValue || null;
+      console.log('Babel Tower: LLM override changed');
+    }
+    if (area === 'local' && changes.bt_user_physical) {
+      userPhysical = changes.bt_user_physical.newValue || null;
+      console.log('Babel Tower: User physical changed');
+    }
+    if (area === 'local' && changes.bt_llm_prefer) {
+      llmPrefer = !!changes.bt_llm_prefer.newValue;
+    }
+    if (area === 'local' && changes.bt_quiet_mode) {
+      quietMode = !!changes.bt_quiet_mode.newValue;
+    }
+    if (area === 'local' && changes.bt_show_translation) {
+      showTranslation = !!changes.bt_show_translation.newValue;
     }
   });
 } catch (e) {
@@ -123,15 +169,45 @@ const handleSelectionEvent = async (event) => {
   const requestId = ++lastRequestId;
   try {
     const price = extractPrice(selectedText);
-    const useLLM = Boolean(userProfile?.llm?.endpoint && userProfile?.llm?.api_key);
+    const useLLM = hasLLM();
 
     let result;
-    if (useLLM) {
-      result = await generateWithLLM(selectedText, price?.amount ?? null);
-    } else if (price && Number.isFinite(price.amount)) {
+    const sizeCtx = parseSizeContext(selectedText);
+    const feat = isFeatureSelection(selectedText);
+    if (price && Number.isFinite(price.amount)) {
+      // 价格场景：默认使用启发式（更快更稳），无需 LLM
       result = generateHeuristic(price.amount, price.currency);
+      if (useLLM) {
+        result.translation = await generateTranslationWithLLM(selectedText, explainLang);
+      }
+    } else if (feat) {
+      if (useLLM) {
+        result = await generateCognitiveWithLLM({ selectedText, task: 'feature', price: null, sizeCtx: null, lang: explainLang });
+      } else {
+        result = { text: '需要启用 LLM 才能解释此特性', anchor: '' };
+      }
+    } else if (sizeCtx && sizeCtx.kind === 'pack') {
+      if (isPackDimsNotHelpful()) { removeOverlay(); return; }
+      if (useLLM && llmPrefer) {
+        result = await generateCognitiveWithLLM({ selectedText, task: 'size', price: null, sizeCtx, lang: explainLang });
+      } else {
+        result = generatePackHeuristic(sizeCtx);
+        if (useLLM) result.translation = await generateTranslationWithLLM(selectedText, explainLang);
+      }
+    } else if (sizeCtx) {
+      if (useLLM && llmPrefer) {
+        result = await generateCognitiveWithLLM({ selectedText, task: 'size', price: null, sizeCtx, lang: explainLang });
+      } else {
+        result = generateSizeHeuristic(sizeCtx);
+        if (useLLM) result.translation = await generateTranslationWithLLM(selectedText, explainLang);
+      }
+    } else if (explainEnabled && shouldExplain(selectedText)) {
+      if (useLLM) {
+        result = await generateCognitiveWithLLM({ selectedText, task: 'term', price: null, sizeCtx: null, lang: explainLang });
+      } else {
+        result = { text: '需要启用 LLM 才能进行名词解释', anchor: '' };
+      }
     } else {
-      // 没启用 LLM 且没匹配到价格——不展示
       removeOverlay();
       return;
     }
@@ -140,11 +216,7 @@ const handleSelectionEvent = async (event) => {
     if (requestId !== lastRequestId) return;
 
     // 更新 Overlay
-    updateOverlay({
-      original: selectedText,
-      insight: result.text,
-      anchor: result.anchor
-    });
+    updateOverlay({ original: selectedText, insight: result.text, anchor: result.anchor, translation: result.translation || '' });
   } catch (err) {
     console.error('Babel Tower: analyze failed', err);
     if (requestId === lastRequestId) {
@@ -157,8 +229,8 @@ const handleSelectionEvent = async (event) => {
   }
 };
 
-document.addEventListener('mouseup', handleSelectionEvent, true);
-document.addEventListener('touchend', handleSelectionEvent, true);
+document.addEventListener('mouseup', (e) => { if (!quietMode) handleSelectionEvent(e); }, true);
+document.addEventListener('touchend', (e) => { if (!quietMode) handleSelectionEvent(e); }, true);
 
 // 有些站点仅 keyboard 选区，使用 selectionchange 兜底（延时读取坐标）
 document.addEventListener('selectionchange', () => {
@@ -167,11 +239,191 @@ document.addEventListener('selectionchange', () => {
   window.__bt_sel_t = setTimeout(() => {
     const sel = window.getSelection();
     const text = sel ? sel.toString().trim() : '';
-    if (text && text.length >= 2) {
+    if (!quietMode && text && text.length >= 2) {
       handleSelectionEvent({});
     }
   }, 120);
 });
+
+// Listen for explicit analyze command (from context menu / toolbar)
+try {
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg && msg.type === 'bt_analyze_selection') {
+      const text = (msg.text || '').trim();
+      const sel = window.getSelection();
+      const fallbackText = sel ? sel.toString().trim() : '';
+      const useText = text || fallbackText;
+      if (!useText) return;
+      const coords = getSelectionCoordinates({});
+      analyzeTextAt(useText, coords.x, coords.y).catch(() => {});
+    }
+  });
+} catch {}
+
+async function analyzeTextAt(selectedText, x, y) {
+  showOverlay(x, y, { original: selectedText, insight: 'Analyzing…', anchor: 'Hold on a sec' });
+  const requestId = ++lastRequestId;
+  try {
+    const price = extractPrice(selectedText);
+    const sizeCtx = parseSizeContext(selectedText);
+    const useLLM = hasLLM();
+    const feat = isFeatureSelection(selectedText);
+    let result;
+    if (price && Number.isFinite(price.amount)) {
+      // 价格场景：默认使用启发式（更快更稳），无需 LLM
+      result = generateHeuristic(price.amount, price.currency);
+    } else if (feat) {
+      if (useLLM) {
+        result = await generateCognitiveWithLLM({ selectedText, task: 'feature', price: null, sizeCtx: null, lang: explainLang });
+      } else {
+        result = { text: '需要启用 LLM 才能解释此特性', anchor: '' };
+      }
+    } else if (sizeCtx && sizeCtx.kind === 'pack') {
+      if (isGarmentContext()) {
+        removeOverlay();
+        return;
+      }
+      if (useLLM && llmPrefer) {
+        result = await generateCognitiveWithLLM({ selectedText, task: 'size', price: null, sizeCtx, lang: explainLang });
+      } else {
+        result = generatePackHeuristic(sizeCtx);
+      }
+    } else if (sizeCtx) {
+      if (useLLM && llmPrefer) {
+        result = await generateCognitiveWithLLM({ selectedText, task: 'size', price: null, sizeCtx, lang: explainLang });
+      } else {
+        result = generateSizeHeuristic(sizeCtx);
+      }
+    } else if (explainEnabled && shouldExplain(selectedText)) {
+      if (useLLM) {
+        result = await generateCognitiveWithLLM({ selectedText, task: 'term', price: null, sizeCtx: null, lang: explainLang });
+      } else {
+        result = { text: '需要启用 LLM 才能进行名词解释', anchor: '' };
+      }
+    } else {
+      removeOverlay();
+      return;
+    }
+    if (requestId !== lastRequestId) return;
+    updateOverlay({ original: selectedText, insight: result.text, anchor: result.anchor });
+  } catch (err) {
+    if (requestId === lastRequestId) updateOverlay({ original: selectedText, insight: 'Sorry, something went wrong.', anchor: '' });
+  }
+}
+
+function gatherPageContext() {
+  try {
+    const lang = (document.documentElement.lang || navigator.language || '').toLowerCase();
+    const title = document.title || '';
+    const host = location.host || '';
+    let ogType = '', siteName = '', canonical = '';
+    const metas = document.getElementsByTagName('meta');
+    for (const m of metas) {
+      const p = (m.getAttribute('property') || m.getAttribute('name') || '').toLowerCase();
+      if (p === 'og:type') ogType = m.getAttribute('content') || ogType;
+      if (p === 'og:site_name') siteName = m.getAttribute('content') || siteName;
+    }
+    const links = document.getElementsByTagName('link');
+    for (const l of links) {
+      const rel = (l.getAttribute('rel') || '').toLowerCase();
+      if (rel === 'canonical') canonical = l.getAttribute('href') || canonical;
+    }
+    // schema.org detection
+    let schema = '';
+    const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (const s of scripts) {
+      try {
+        const json = JSON.parse(s.textContent || '{}');
+        const t = Array.isArray(json) ? json.map(x=>x['@type']).join(',') : (json['@type'] || '');
+        if (t && /Product|Offer/i.test(t)) { schema = t; break; }
+      } catch {}
+    }
+    pageContext = { lang, title, host, ogType, siteName, canonical, schema };
+    pageIntent = classifyPageIntentHeuristic();
+    // If heuristic is uncertain, try micro LLM classification once and cache
+    classifyPageIntentSmart();
+  } catch {}
+}
+
+function classifyPageIntentHeuristic() {
+  try {
+    const t = (pageContext?.title || document.title || '').toLowerCase();
+    const schema = (pageContext?.schema || '').toLowerCase();
+    let category = 'other';
+    if (/(protein|whey|casein|supplement|bcaa|creatine|蛋白|乳清|酪蛋白|增肌|补剂)/.test(t)) category = 'supplement';
+    else if (/(speaker|soundbar|bluetooth|anc|audio|headphone|音箱|耳机|降噪)/.test(t)) category = 'audio';
+    else if (/(jacket|coat|shirt|pant|jean|skirt|dress|hoodie|down|outer|羽绒|外套|衣|上衣|裤|裙)/.test(t)) category = 'clothing';
+    else if (/(desk|table|chair|sofa|furniture|家具|书桌|桌|椅)/.test(t)) category = 'furniture';
+    else if (/(laptop|monitor|phone|camera|electronics|电子|显示器|相机|手机)/.test(t)) category = 'electronics';
+    const user_goal = /product|offer/.test(schema) ? 'buying' : 'reading';
+    return { category, user_goal };
+  } catch {}
+  return { category: 'other', user_goal: 'reading' };
+}
+
+function intentCacheKey() {
+  try {
+    const host = location.host || '';
+    const path = (location.pathname || '').split('/').slice(0,2).join('/');
+    return `${host}${path}`;
+  } catch { return String(Date.now()); }
+}
+
+function classifyPageIntentSmart() {
+  try {
+    if (!hasLLM()) return; // no LLM, skip
+    if (!pageIntent || pageIntent.category === 'other') {
+      const key = intentCacheKey();
+      chrome.storage.local.get(['bt_page_intent_cache'], async (res) => {
+        const cache = res.bt_page_intent_cache || {};
+        if (cache[key]) { pageIntent = cache[key]; return; }
+        try {
+          const intent = await classifyPageIntentLLM();
+          if (intent && intent.category) {
+            pageIntent = intent;
+            // store back
+            const next = Object.assign({}, cache);
+            next[key] = intent;
+            // simple cap to 50 entries
+            const keys = Object.keys(next);
+            if (keys.length > 50) delete next[keys[0]];
+            chrome.storage.local.set({ bt_page_intent_cache: next });
+          }
+        } catch {}
+      });
+    }
+  } catch {}
+}
+
+async function classifyPageIntentLLM() {
+  const cfg = getLLMCfg();
+  if (!cfg.endpoint || !cfg.api_key) throw new Error('LLM config missing');
+  const ctx = {
+    title: pageContext?.title || document.title || '',
+    host: pageContext?.host || location.host || '',
+    ogType: pageContext?.ogType || '',
+    siteName: pageContext?.siteName || '',
+    canonical: pageContext?.canonical || ''
+  };
+  const sys = [
+    'Classify page intent for end-user shopping context.',
+    'Return strictly JSON: {"category": string, "user_goal": string}.',
+    'category in {supplement,audio,clothing,furniture,electronics,other}.',
+    'user_goal in {buying,reading}. Keep it minimal.'
+  ].join(' ');
+  const messages = [
+    { role: 'system', content: sys },
+    { role: 'user', content: JSON.stringify(ctx) }
+  ];
+  const body = { model: cfg.model || 'gpt-4o-mini', messages, temperature: 0 };
+  const res = await fetch(cfg.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.api_key}` }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error('intent http');
+  const data = await res.json();
+  const content = data?.choices?.[0]?.message?.content?.trim?.();
+  let parsed; try { parsed = JSON.parse(content); } catch (e) { const m = content && content.match(/\{[\s\S]*\}/); if (m) parsed = JSON.parse(m[0]); }
+  if (!parsed || !parsed.category) return null;
+  return { category: String(parsed.category), user_goal: String(parsed.user_goal || 'buying') };
+}
 
 function getSelectionCoordinates(event) {
   // 优先使用事件坐标
@@ -485,7 +737,7 @@ function tryCustomAnchorAnchorText(valueInTarget, targetCurrency, fxToCNY) {
 
 // -------------------- LLM 接入（OpenAI 风格）--------------------
 async function generateWithLLM(selectedText, priceUSD) {
-  const cfg = userProfile?.llm || {};
+  const cfg = getLLMCfg();
   if (!cfg.endpoint || !cfg.api_key) {
     throw new Error('LLM config missing.');
   }
@@ -559,6 +811,390 @@ async function generateWithLLM(selectedText, priceUSD) {
   return { text: parsed.text, anchor: parsed.anchor || '' };
 }
 
+// -------------------- 名词解释（LLM） --------------------
+async function generateExplanationWithLLM(selectedText) {
+  const cfg = getLLMCfg();
+  if (!cfg.endpoint || !cfg.api_key) {
+    throw new Error('LLM config missing.');
+  }
+  const lang = explainLang || 'zh';
+  const sys = [
+    'You are Babel Tower, a concise term explainer.',
+    'Explain the given term in 1-2 sentences, avoid fluff.',
+    'Audience is a Chinese developer; keep it practical and clear.',
+    'Return JSON only: {"text": string, "anchor": string}.',
+    'text: short definition in desired language; anchor: a usage hint or common pitfall.'
+  ].join(' ');
+  const langHint = lang === 'en' ? 'English only.' : (lang === 'zh-en' ? 'Bilingual Chinese and English.' : 'Chinese only.');
+
+  const messages = [
+    { role: 'system', content: `${sys} Language: ${langHint}` },
+    { role: 'user', content: JSON.stringify({ term: selectedText }) }
+  ];
+  const body = { model: cfg.model || 'gpt-4o-mini', messages, temperature: 0.2 };
+  const res = await fetch(cfg.endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.api_key}` },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    throw new Error(`LLM HTTP ${res.status}: ${t}`);
+  }
+  const data = await res.json();
+  const content = data?.choices?.[0]?.message?.content?.trim?.();
+  let parsed;
+  try { parsed = JSON.parse(content); }
+  catch (e) {
+    const m = content && content.match(/\{[\s\S]*\}/);
+    if (m) parsed = JSON.parse(m[0]);
+  }
+  if (!parsed || typeof parsed.text !== 'string') {
+    throw new Error('LLM response parse error (explain)');
+  }
+  return { text: parsed.text, anchor: parsed.anchor || '' };
+}
+
+function getLLMCfg() {
+  // 优先使用自定义；否则 profile.json 中的 llm
+  const ov = llmOverride || {};
+  const pf = userProfile?.llm || {};
+  return {
+    endpoint: ov.endpoint || pf.endpoint || '',
+    api_key: ov.api_key || pf.api_key || '',
+    model: ov.model || pf.model || 'gpt-4o-mini'
+  };
+}
+
+function hasLLM() {
+  const cfg = getLLMCfg();
+  return !!(cfg.endpoint && cfg.api_key);
+}
+
+function shouldExplain(text) {
+  const s = String(text).trim();
+  if (s.length < 2 || s.length > 120) return false;
+  const words = s.split(/\s+/);
+  if (words.length > 8) return false;
+  if (!/[A-Za-z\u4e00-\u9fa5]/.test(s)) return false;
+  return true;
+}
+
+function isFeatureSelection(text) {
+  const s = String(text).toLowerCase();
+  const tokens = [
+    // connectivity/codecs
+    'bluetooth','bt','aac','aptx','ldac','wifi','airplay','chromecast','hdmi','earc','arc','usb-c','aux',
+    // audio
+    'anc','noise cancelling','noise-canceling','woofer','tweeter','driver','watt','rms','db','ohm','khz','hz','snr','thd','dolby','dts','atmos','latency','ms',
+    // durability & rating
+    'ipx','ip67','ip68','waterproof','dustproof','splash',
+    // battery
+    'mah','battery','playtime','hours','h',
+    // general feature words
+    'feature','spec','selling point','优势','卖点','特色','特性','降噪','续航','低延迟','编码','防水','防尘',
+    // nutrition/supplement
+    'protein','whey','casein','isolate','concentrate','bcaa','leucine','creatine','serving','scoop','kcal','calorie','calories','g ',' g/','grams','sugar','sweetener','lactose','digest','absorption','hydrolyzed',
+    '蛋白','乳清','酪蛋白','分离','浓缩','支链','亮氨酸','肌酸','每勺','每份','热量','卡路里','克','糖','甜味剂','低乳糖','易消化','配方','配料','无麸质','增肌','恢复','吸收'
+  ];
+  return tokens.some(t => s.includes(t));
+}
+
+// -------------------- 尺码解析与解释 --------------------
+function parseSizeContext(text) {
+  const s = String(text).replace(/\u00A0/g, ' ').trim();
+  const low = s.toLowerCase();
+  // Direct size labels
+  if (/\b(xxxs|xxs|xs|s|m|l|xl|xxl|xxxl)\b/i.test(s)) {
+    return { kind: 'size_label', label: s.match(/\b(XXXS|XXS|XS|S|M|L|XL|XXL|XXXL)\b/i)[0].toUpperCase() };
+  }
+  // Shoe sizes
+  const shoe = low.match(/\b(US|UK|EU)\s*([0-9]{1,2}(?:\.5)?)\b/i) || low.match(/([3-4][0-9])\s*码/);
+  if (shoe) {
+    const sys = (shoe[1] || 'CN').toUpperCase();
+    const val = parseFloat(shoe[2] || shoe[1]);
+    return { kind: 'shoe', system: sys, value: isFinite(val) ? val : null };
+  }
+  // Waist / inseam / generic length with units
+  const mInseam = low.match(/\b(inseam|inside\s*leg|内长|裤长)\D{0,8}([0-9]{2,3}(?:\.[0-9])?)\s*(cm|毫米|mm|in|inch|")/i);
+  if (mInseam) return { kind: 'inseam', value: parseFloat(mInseam[2]), unit: normUnit(mInseam[3]) };
+  const mWaist = low.match(/\b(waist|腰围)\D{0,8}([0-9]{2,3}(?:\.[0-9])?)\s*(cm|毫米|mm|in|inch|")/i);
+  if (mWaist) return { kind: 'waist', value: parseFloat(mWaist[2]), unit: normUnit(mWaist[3]) };
+  // Generic: number + unit and a sizing token nearby
+  const mLen = low.match(/([0-9]{2,3}(?:\.[0-9])?)\s*(cm|毫米|mm|in|inch|")/i);
+  if (mLen && /(length|衣长|袖长|胸围|肩宽|hip|bust|chest|shoulder|sleeve)/i.test(low)) {
+    return { kind: 'length', value: parseFloat(mLen[1]), unit: normUnit(mLen[2]) };
+  }
+  return null;
+}
+
+function normUnit(u){
+  if (!u) return null;
+  const t = String(u).toLowerCase();
+  if (t === 'mm' || t === '毫米') return 'mm';
+  if (t === 'cm') return 'cm';
+  if (t === 'in' || t === 'inch' || t === '"') return 'in';
+  return t;
+}
+
+function generateSizeHeuristic(ctx) {
+  const lang = explainLang || 'zh';
+  const fit = userPhysical?.preferred_fit || 'regular';
+  const height = userPhysical?.height_cm;
+  const toCm = (val, unit) => unit === 'cm' ? val : unit === 'in' ? val * 2.54 : unit === 'mm' ? val / 10 : val;
+  let text = '', anchor = '';
+  if (ctx.kind === 'pack' && ctx.dims) {
+    return generatePackHeuristic(ctx);
+  }
+  if ((ctx.kind === 'inseam' || ctx.kind === 'length') && ctx.value) {
+    const cm = toCm(ctx.value, ctx.unit);
+    const inches = cm / 2.54;
+    // rough mapping: height ≈ inseam * 2.3 (regular fit)
+    const k = fit === 'slim' ? 2.25 : fit === 'relaxed' ? 2.35 : 2.3;
+    const est = Math.round(cm * k);
+    const labelZh = ctx.kind === 'inseam' ? '裤长' : '长度';
+    const labelEn = ctx.kind === 'inseam' ? 'Inseam' : 'Length';
+    text = lang.startsWith('zh') ? `${labelZh}约 ${cm.toFixed(0)} cm（≈ ${inches.toFixed(1)} in）` : `${labelEn} ~ ${cm.toFixed(0)} cm (≈ ${inches.toFixed(1)} in)`;
+    if (ctx.kind === 'inseam') {
+      if (height && isFinite(height)) {
+        const diff = height - est;
+        const hint = diff > 3 ? (lang.startsWith('zh') ? '偏短' : 'short') : diff < -3 ? (lang.startsWith('zh') ? '偏长' : 'long') : (lang.startsWith('zh') ? '大致合适' : 'about right');
+        anchor = lang.startsWith('zh') ? `按${fit}版型估算，身高约 ${est} cm 合适；你是 ${height} cm，${hint}` : `For ${fit} fit, est height ~${est} cm; you are ${height} cm, ${hint}`;
+      } else {
+        anchor = lang.startsWith('zh') ? `按${fit}版型估算，适合身高约 ${Math.round(est-3)}–${Math.round(est+3)} cm` : `For ${fit} fit, fits height ~${Math.round(est-3)}–${Math.round(est+3)} cm`;
+      }
+    } else {
+      anchor = lang.startsWith('zh') ? '不同品牌/版型差异较大，建议结合尺码表' : 'Brand and fit vary; check size chart';
+    }
+    return { text, anchor };
+  }
+  if (ctx.kind === 'waist' && ctx.value) {
+    const cm = toCm(ctx.value, ctx.unit);
+    const inches = cm / 2.54;
+    text = lang.startsWith('zh') ? `腰围约 ${cm.toFixed(0)} cm（≈ ${inches.toFixed(1)} in）` : `Waist ~ ${cm.toFixed(0)} cm (≈ ${inches.toFixed(1)} in)`;
+    anchor = lang.startsWith('zh') ? '不同品牌/版型差异较大，建议结合尺码表' : 'Brand and fit vary; check size chart';
+    return { text, anchor };
+  }
+  if (ctx.kind === 'shoe') {
+    // Heuristic shoe conversion via foot length
+    const userFoot = userPhysical?.foot_length_cm;
+    const from = ctx.system || 'EU';
+    const foot = footFromShoe(ctx) || userFoot || null;
+    if (foot) {
+      const conv = shoeFromFoot(foot);
+      const base = `${lang.startsWith('zh') ? '参考脚长' : 'Ref foot length'} ${foot.toFixed(1)} cm`;
+      const lineEU = `EU ${Math.round(conv.EU)}`;
+      const lineUSm = `US ${formatHalf(conv.USm)}`;
+      const lineUK = `UK ${formatHalf(conv.UK)}`;
+      text = lang.startsWith('zh') ? `鞋码建议：${lineEU} • ${lineUSm} • ${lineUK}` : `Shoe suggestion: ${lineEU} • ${lineUSm} • ${lineUK}`;
+      if (userFoot && isFinite(userFoot)) {
+        const userConv = shoeFromFoot(userFoot);
+        const userEU = Math.round(userConv.EU);
+        anchor = lang.startsWith('zh') ? `你的脚长约 ${userFoot.toFixed(1)} cm，EU 推荐约 ${userEU}（品牌/楦头差异较大，建议试穿）` : `Your foot ~${userFoot.toFixed(1)} cm, EU ~${userEU} (brand/last varies; try on if possible)`;
+      } else {
+        anchor = lang.startsWith('zh') ? `${base}（品牌/楦头差异较大，建议试穿）` : `${base} (brand/last varies; try on)`;
+      }
+      return { text, anchor };
+    } else {
+      text = lang.startsWith('zh') ? '鞋码信息' : 'Shoe size';
+      anchor = lang.startsWith('zh') ? '建议提供脚长（cm）以便更准确转换' : 'Provide foot length (cm) for better conversion';
+      return { text, anchor };
+    }
+  }
+  if (ctx.kind === 'size_label') {
+    text = lang.startsWith('zh') ? `尺寸标签：${ctx.label}` : `Size label: ${ctx.label}`;
+    anchor = lang.startsWith('zh') ? '不同品牌的 S/M/L 尺码范围不同，建议参考胸围/肩宽' : 'Label ranges vary by brand; check chest/shoulder measurements';
+    return { text, anchor };
+  }
+  // fallback
+  return { text: lang.startsWith('zh') ? '尺码信息' : 'Sizing info', anchor: lang.startsWith('zh') ? '建议查看品牌尺码表' : 'Check brand size chart' };
+}
+
+function generatePackHeuristic(ctx) {
+  const lang = explainLang || 'zh';
+  const toCm = (v,u) => u === 'cm' ? v : u === 'in' ? v*2.54 : u === 'mm' ? v/10 : v;
+  const vals = ctx.dims.values.map(p => toCm(p.v, p.unit || ctx.dims.unit));
+  let liters = 0;
+  if (vals.length === 2 || (vals.length>=2 && ctx.dims.hasDia)) {
+    const d = vals[0]; const h = vals[1];
+    liters = Math.PI * Math.pow(d/2,2) * h / 1000;
+  } else if (vals.length >= 3) {
+    liters = (vals[0]*vals[1]*vals[2]) / 1000;
+  }
+  if (liters <= 0) {
+    return { text: lang.startsWith('zh') ? '收纳体积' : 'Packed volume', anchor: '' };
+  }
+  const bottles = liters / 0.5;
+  const text = lang.startsWith('zh')
+    ? `收纳体积约 ${liters.toFixed(liters<3?2:1)} L（≈ ${bottles.toFixed(bottles<10?1:0)} 瓶500ml）`
+    : `Packed volume ~ ${liters.toFixed(liters<3?2:1)} L (≈ ${bottles.toFixed(bottles<10?1:0)} × 500ml bottles)`;
+  // Dynamic context-based anchor: pocket / backpack / carry-on
+  let anchor;
+  if (liters <= 0.8) {
+    anchor = lang.startsWith('zh') ? '可放入大衣口袋/收纳袋；背包顶袋轻松放入' : 'Fits coat pocket or stuff sack; easy in top pocket';
+  } else if (liters <= 1.5) {
+    anchor = lang.startsWith('zh') ? '≈ 一个 1L 水瓶体积；背包侧袋适配' : '≈ a 1L bottle; fits backpack side pocket';
+  } else if (liters <= 3) {
+    const pct20 = Math.round((liters/20)*100);
+    anchor = lang.startsWith('zh') ? `约占 20L 日包 ${pct20}% 空间（主仓/顶袋）` : `~${pct20}% of a 20L daypack (main/top)`;
+  } else if (liters <= 8) {
+    const pct20 = Math.round((liters/20)*100);
+    anchor = lang.startsWith('zh') ? `建议放入 20L 日包主仓，约占 ${pct20}% 空间` : `Put in 20L daypack main compartment (~${pct20}%)`;
+  } else {
+    const pct30 = Math.round((liters/30)*100);
+    anchor = lang.startsWith('zh') ? `约占 30L 随身箱 ${pct30}% 空间` : `~${pct30}% of a 30L carry-on`;
+  }
+  return { text, anchor };
+}
+
+async function generateSizeExplanationWithLLM(selectedText, sizeCtx) {
+  const cfg = getLLMCfg();
+  if (!cfg.endpoint || !cfg.api_key) {
+    throw new Error('LLM config missing.');
+  }
+  const lang = explainLang || 'zh';
+  const payload = {
+    text: selectedText,
+    parsed: sizeCtx,
+    user_physical: userPhysical || {},
+    desired_language: lang
+  };
+  const sys = [
+    'You explain product sizing in shopping contexts.',
+    'Use provided parsed info and user physical to give actionable advice.',
+    'Be concise (1-2 sentences).',
+    'Return strictly JSON: {"text": string, "anchor": string}.',
+    'text: primary advice in desired language; anchor: a short tip (e.g., fit, hem, brand variance).'
+  ].join(' ');
+  const messages = [
+    { role: 'system', content: sys },
+    { role: 'user', content: JSON.stringify(payload) }
+  ];
+  const body = { model: cfg.model || 'gpt-4o-mini', messages, temperature: 0.2 };
+  const res = await fetch(cfg.endpoint, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.api_key}` }, body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    throw new Error(`LLM HTTP ${res.status}: ${t}`);
+  }
+  const data = await res.json();
+  const content = data?.choices?.[0]?.message?.content?.trim?.();
+  let parsed;
+  try { parsed = JSON.parse(content); }
+  catch (e) { const m = content && content.match(/\{[\s\S]*\}/); if (m) parsed = JSON.parse(m[0]); }
+  if (!parsed || typeof parsed.text !== 'string') throw new Error('LLM response parse error (size)');
+  return { text: parsed.text, anchor: parsed.anchor || '' };
+}
+
+// -------------------- 统一认知理解（价格/尺码/术语）LLM --------------------
+async function generateCognitiveWithLLM({ selectedText, task, price, sizeCtx, lang }) {
+  const cfg = getLLMCfg();
+  if (!cfg.endpoint || !cfg.api_key) throw new Error('LLM config missing.');
+  const targetCurrency = (overrideTargetCurrency || userProfile?.user_context?.currency || 'CNY').toUpperCase();
+  const payload = {
+    selectedText,
+    task: task || (price ? 'price' : (sizeCtx ? 'size' : 'term')),
+    lang: lang || 'zh',
+    price,
+    size: sizeCtx,
+    user_context: userProfile?.user_context || {},
+    user_physical: userPhysical || {},
+    anchors: {
+      profile: userProfile?.cognitive_anchors || {},
+      custom: customAnchorUnit || null
+    },
+    target_currency: targetCurrency,
+    page_context: pageContext || {},
+    page_intent: pageIntent || classifyPageIntentHeuristic()
+  };
+  const sys = [
+    'You are Babel Tower, a cognitive translator/explainer.',
+    'Return strictly JSON: {"text": string, "anchor": string}.',
+    'Always adopt the end-user perspective indicated by page_intent (category, user_goal). Assume the user is evaluating this product for their own use.',
+    'For task=price: convert to target_currency and include a cognitive anchor (e.g., cups of coffee, subscription months), using provided anchors/custom unit when available.',
+    'For task=size: if garment sizing, give practical advice (fit, hemming, brand variance).',
+    'If packed/packing size of gear/clothing, translate into intuitive volume (liters) and luggage footprint (e.g., percent of 30L suitcase), and compare to common objects (e.g., 500ml bottles).',
+    'For task=feature: explain what the feature/spec means in practice and why it matters to a buyer; add one caveat or dependency if relevant. Be concise (1–2 sentences).',
+    'For task=term: explain in 1-2 sentences, practical and clear.',
+  ].join(' ');
+  const messages = [
+    { role: 'system', content: sys },
+    { role: 'user', content: JSON.stringify(payload) }
+  ];
+  const body = { model: cfg.model || 'gpt-4o-mini', messages, temperature: 0.2 };
+  const res = await fetch(cfg.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.api_key}` }, body: JSON.stringify(body) });
+  if (!res.ok) { const t = await res.text().catch(()=>''); throw new Error(`LLM HTTP ${res.status}: ${t}`); }
+  const data = await res.json();
+  const content = data?.choices?.[0]?.message?.content?.trim?.();
+  let parsed; try { parsed = JSON.parse(content); } catch (e) { const m = content && content.match(/\{[\s\S]*\}/); if (m) parsed = JSON.parse(m[0]); }
+  if (!parsed || typeof parsed.text !== 'string') throw new Error('LLM response parse error (cognitive)');
+  return { text: parsed.text, anchor: parsed.anchor || '', translation: parsed.translation || '' };
+}
+
+async function generateTranslationWithLLM(selectedText, lang) {
+  const cfg = getLLMCfg();
+  if (!cfg.endpoint || !cfg.api_key) throw new Error('LLM config missing.');
+  const sys = 'Translate the user text to the desired language. Return strictly JSON: {"translation": string}.';
+  const hint = lang === 'en' ? 'English' : (lang === 'zh-en' ? 'Chinese and English bilingual' : 'Chinese');
+  const messages = [
+    { role: 'system', content: `${sys} Language: ${hint}` },
+    { role: 'user', content: selectedText }
+  ];
+  const body = { model: cfg.model || 'gpt-4o-mini', messages, temperature: 0 };
+  const res = await fetch(cfg.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cfg.api_key}` }, body: JSON.stringify(body) });
+  if (!res.ok) { const t = await res.text().catch(()=> ''); throw new Error(`LLM HTTP ${res.status}: ${t}`); }
+  const data = await res.json();
+  const content = data?.choices?.[0]?.message?.content?.trim?.();
+  let parsed; try { parsed = JSON.parse(content); } catch (e) { const m = content && content.match(/\{[\s\S]*\}/); if (m) parsed = JSON.parse(m[0]); }
+  return parsed && parsed.translation ? String(parsed.translation) : '';
+}
+
+// ---- Shoe conversion helpers (heuristic) ----
+function footFromShoe(ctx) {
+  // Return approximate foot length in cm from a shoe size/context
+  try {
+    if (!ctx) return null;
+    if (ctx.system === 'EU' || ctx.system === 'CN') {
+      const eu = ctx.value;
+      if (!isFinite(eu)) return null;
+      // inverse of EU ≈ (foot_cm + 1.5) * 1.5
+      return (eu / 1.5) - 1.5;
+    }
+    if (ctx.system === 'US') {
+      const us = ctx.value;
+      if (!isFinite(us)) return null;
+      // US Men ≈ 3*in - 22 => in ≈ (US + 22)/3
+      const inches = (us + 22) / 3;
+      return inches * 2.54;
+    }
+    if (ctx.system === 'UK') {
+      const uk = ctx.value;
+      if (!isFinite(uk)) return null;
+      // UK ≈ US - 0.5 => US ≈ UK + 0.5
+      const inches = (uk + 0.5 + 22) / 3;
+      return inches * 2.54;
+    }
+  } catch {}
+  return null;
+}
+
+function shoeFromFoot(foot_cm) {
+  const inches = foot_cm / 2.54;
+  // US Men ≈ 3*in - 22; Women ≈ USm + 1.5; UK ≈ USm - 0.5; EU ≈ (cm + 1.5)*1.5
+  const USm = (3 * inches) - 22;
+  const USw = USm + 1.5;
+  const UK = USm - 0.5;
+  const EU = (foot_cm + 1.5) * 1.5;
+  return { USm, USw, UK, EU };
+}
+
+function formatHalf(x) {
+  // round to nearest 0.5
+  const r = Math.round(x * 2) / 2;
+  return (Math.abs(r - Math.round(r)) < 1e-6) ? String(Math.round(r)) : r.toFixed(1);
+}
+
 // -------------------- Overlay 渲染 --------------------
 function showOverlay(x, y, content) {
   removeOverlay();
@@ -582,17 +1218,18 @@ function updateOverlay(content) {
   instrumentOverlay();
 }
 
-function template(content) {
-  return `
-    <div class="bt-card">
-      <div class="bt-origin">原文: "${escapeHTML(content.original || '')}"</div>
-      <div class="bt-insight">${escapeHTML(content.insight || '')}</div>
-      <div class="bt-anchor">${escapeHTML(content.anchor || '')}</div>
-      <div class="bt-meta">Babel Tower • Context Layer</div>
-      <div class="bt-actions"><button class="bt-gear" title="Open Settings">⚙︎</button></div>
-    </div>
-  `;
-}
+  function template(content) {
+    return `
+      <div class="bt-card">
+        <div class="bt-drag" title="拖动移动卡片"></div>
+        <div class="bt-insight">${escapeHTML(content.insight || '')}</div>
+        <div class="bt-anchor">${escapeHTML(content.anchor || '')}</div>
+        <div class="bt-meta">Babel Tower • Context Layer</div>
+        ${showTranslation && content.translation ? `<div class="bt-translation">${escapeHTML(content.translation)}</div>` : ''}
+        <div class="bt-actions"><button class="bt-gear" title="Open Settings">⚙︎</button></div>
+      </div>
+    `;
+  }
 
 function removeOverlay() {
   if (currentOverlay) {
@@ -600,6 +1237,21 @@ function removeOverlay() {
     currentOverlay = null;
     document.removeEventListener('mousedown', handleClickOutside);
   }
+}
+
+function isPackDimsNotHelpful() {
+  try {
+    const title = (pageContext?.title || document.title || '').toLowerCase();
+    const host = (pageContext?.host || location.host || '').toLowerCase();
+    const schema = (pageContext?.schema || '').toLowerCase();
+    // categories where pack dims are not helpful: clothing, audio, supplement, electronics
+    const text = `${title} ${schema}`;
+    if (/(jacket|down|parka|coat|shirt|tee|t-shirt|sweater|hoodie|pant|jean|trouser|skirt|dress|羽绒|外套|上衣|裤|裙)/.test(text)) return true;
+    if (/(speaker|soundbar|bluetooth|anc|audio|headphone|音箱|耳机|降噪)/.test(text)) return true;
+    if (/(protein|whey|supplement|bcaa|creatine|蛋白|补剂|增肌)/.test(text)) return true;
+    if (/(laptop|monitor|phone|camera|electronics|电子|显示器|相机|手机)/.test(text)) return true;
+  } catch {}
+  return false;
 }
 
 function handleClickOutside(event) {
@@ -632,6 +1284,37 @@ function instrumentOverlay() {
             window.open(chrome.runtime.getURL('options.html'), '_blank');
           } catch {}
         }
+      });
+    }
+
+    // Drag handle for moving overlay
+    const handle = currentOverlay && currentOverlay.querySelector('.bt-drag');
+    if (handle && !handle.__bt_bound) {
+      handle.__bt_bound = true;
+      let dragging = false;
+      let offX = 0, offY = 0;
+      const onMouseMove = (ev) => {
+        if (!dragging || !currentOverlay) return;
+        const x = Math.max(0, Math.min(window.scrollX + window.innerWidth - 40, ev.clientX - offX));
+        const y = Math.max(0, Math.min(window.scrollY + window.innerHeight - 40, ev.clientY - offY));
+        currentOverlay.style.left = `${x}px`;
+        currentOverlay.style.top = `${y}px`;
+      };
+      const onMouseUp = () => {
+        dragging = false;
+        document.removeEventListener('mousemove', onMouseMove, true);
+        document.removeEventListener('mouseup', onMouseUp, true);
+      };
+      handle.addEventListener('mousedown', (ev) => {
+        if (!currentOverlay) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const rect = currentOverlay.getBoundingClientRect();
+        offX = ev.clientX - rect.left;
+        offY = ev.clientY - rect.top;
+        dragging = true;
+        document.addEventListener('mousemove', onMouseMove, true);
+        document.addEventListener('mouseup', onMouseUp, true);
       });
     }
   } catch {}
