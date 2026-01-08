@@ -17,7 +17,7 @@ Babel Tower 是一个“认知翻译层”的插件：用户在网页中选中�
 ### 安装与加载
 1. 打开 Chrome，访问 `chrome://extensions`。
 2. 打开右上角“开发者模式”。
-3. 点击“加载已解压的扩展程序（Load unpacked）”，选择本文件夹 `babel_tower_mvp`。
+3. 点击“加载已解压的扩展程序（Load unpacked）”，选择本文件夹 `babel_tower`。
 4. 建议固定扩展图标到工具栏，点击可快速打开设置。
 
 ### 使用
@@ -74,11 +74,11 @@ Babel Tower 是一个“认知翻译层”的插件：用户在网页中选中�
 - 网络差导致汇率刷新失败：稍后再试；已做超时与多源并行，通常可恢复。
 
 ### 发布到 GitHub
-在仓库根（`babel_tower_mvp`）执行：
+在仓库根（`babel_tower`）执行：
 
 ```
 # 初始化与首次提交
-cd babel_tower_mvp
+cd babel_tower
 git init
 git add .
 git commit -m "feat: initial MVP Chrome extension"
