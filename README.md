@@ -85,11 +85,11 @@ git commit -m "feat: initial MVP Chrome extension"
 
 # 方式 A：GitHub CLI 一键创建并推送
 gh auth login
-gh repo create Babel-Tower-MVP --public --source=. --remote=origin --push
+gh repo create Babel-Tower --public --source=. --remote=origin --push
 
 # 方式 B：手动添加远程再推送
 git branch -M main
-git remote add origin https://github.com/<你的用户名>/<仓库名>.git
+git remote add origin https://github.com/<你的用户名>/Babel-Tower.git
 git push -u origin main
 ```
 
