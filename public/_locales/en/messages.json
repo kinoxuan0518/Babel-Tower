@@ -1,0 +1,300 @@
+{
+  "extName": {
+    "message": "Babel Tower",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Cognitive Translation Layer: Understanding over translation",
+    "description": "Extension description"
+  },
+  "optionsTitle": {
+    "message": "Babel Tower Settings",
+    "description": "Options page title"
+  },
+  "contextMenuExplain": {
+    "message": "Babel Tower: Explain Selection",
+    "description": "Context menu item"
+  },
+
+  "sectionLanguage": {
+    "message": "Language",
+    "description": "Language section title"
+  },
+  "labelLanguage": {
+    "message": "Select Language",
+    "description": "Language selector label"
+  },
+  "langZh": {
+    "message": "简体中文",
+    "description": "Chinese language option"
+  },
+  "langEn": {
+    "message": "English",
+    "description": "English language option"
+  },
+  "langJa": {
+    "message": "日本語",
+    "description": "Japanese language option"
+  },
+  "langKo": {
+    "message": "한국어",
+    "description": "Korean language option"
+  },
+  "languageHint": {
+    "message": "Reopen settings page after changing language",
+    "description": "Language change hint"
+  },
+
+  "sectionCurrency": {
+    "message": "Target Currency",
+    "description": "Currency section title"
+  },
+  "labelCurrency": {
+    "message": "Display Currency",
+    "description": "Currency selector label"
+  },
+  "currencyHint": {
+    "message": "Prices will be converted to this currency",
+    "description": "Currency hint"
+  },
+
+  "sectionFx": {
+    "message": "Exchange Rates",
+    "description": "Exchange rate section title"
+  },
+  "btnRefreshFx": {
+    "message": "Refresh Now",
+    "description": "Refresh FX button"
+  },
+  "fxLoading": {
+    "message": "Loading...",
+    "description": "FX loading state"
+  },
+  "fxSource": {
+    "message": "Source",
+    "description": "FX source label"
+  },
+  "fxUpdated": {
+    "message": "Updated",
+    "description": "FX updated label"
+  },
+  "fxCurrencies": {
+    "message": "Currencies",
+    "description": "FX currencies count"
+  },
+  "fxRefreshing": {
+    "message": "Refreshing...",
+    "description": "FX refreshing state"
+  },
+  "fxFailed": {
+    "message": "Refresh failed",
+    "description": "FX refresh failed"
+  },
+  "fxNoData": {
+    "message": "No live rates (using fallback values)",
+    "description": "No FX data"
+  },
+
+  "sectionLLM": {
+    "message": "LLM Configuration",
+    "description": "LLM section title"
+  },
+  "labelEnableLLM": {
+    "message": "Enable Custom LLM",
+    "description": "Enable LLM checkbox"
+  },
+  "labelProvider": {
+    "message": "Provider",
+    "description": "Provider label"
+  },
+  "labelEndpoint": {
+    "message": "API Endpoint",
+    "description": "Endpoint label"
+  },
+  "labelModel": {
+    "message": "Model",
+    "description": "Model label"
+  },
+  "labelApiKey": {
+    "message": "API Key",
+    "description": "API Key label"
+  },
+  "btnSaveLLM": {
+    "message": "Save",
+    "description": "Save LLM button"
+  },
+  "btnTestLLM": {
+    "message": "Test",
+    "description": "Test LLM button"
+  },
+  "btnClearLLM": {
+    "message": "Clear",
+    "description": "Clear LLM button"
+  },
+  "btnListModels": {
+    "message": "List Models",
+    "description": "List models button"
+  },
+  "llmPreferLabel": {
+    "message": "Prefer LLM for non-price scenarios",
+    "description": "LLM prefer checkbox"
+  },
+  "showTranslationLabel": {
+    "message": "Show translation",
+    "description": "Show translation checkbox"
+  },
+  "translationLangLabel": {
+    "message": "Translation language",
+    "description": "Translation language label"
+  },
+  "llmSecurityHint": {
+    "message": "API Key stored locally only. All requests go through background proxy.",
+    "description": "LLM security hint"
+  },
+  "llmTestSuccess": {
+    "message": "Test successful",
+    "description": "LLM test success"
+  },
+  "llmTestFailed": {
+    "message": "Test failed",
+    "description": "LLM test failed"
+  },
+  "llmTesting": {
+    "message": "Testing...",
+    "description": "LLM testing"
+  },
+
+  "sectionInteraction": {
+    "message": "Interaction Mode",
+    "description": "Interaction section title"
+  },
+  "quietModeLabel": {
+    "message": "Quiet Mode",
+    "description": "Quiet mode checkbox"
+  },
+  "quietModeHint": {
+    "message": "Only trigger via context menu or toolbar icon",
+    "description": "Quiet mode hint"
+  },
+
+  "sectionTermExplain": {
+    "message": "Term Explanation",
+    "description": "Term explanation section"
+  },
+  "enableExplainLabel": {
+    "message": "Enable term explanation",
+    "description": "Enable explain checkbox"
+  },
+  "explainLangLabel": {
+    "message": "Explanation language",
+    "description": "Explain language label"
+  },
+  "explainHint": {
+    "message": "Use LLM to explain non-price selections",
+    "description": "Explain hint"
+  },
+
+  "sectionPhysical": {
+    "message": "Body Data",
+    "description": "Physical data section"
+  },
+  "physicalHint": {
+    "message": "For size estimation. Stored locally only.",
+    "description": "Physical data hint"
+  },
+  "labelHeight": {
+    "message": "Height (cm)",
+    "description": "Height label"
+  },
+  "labelWeight": {
+    "message": "Weight (kg)",
+    "description": "Weight label"
+  },
+  "labelFoot": {
+    "message": "Foot length (cm)",
+    "description": "Foot length label"
+  },
+  "labelFit": {
+    "message": "Fit preference",
+    "description": "Fit preference label"
+  },
+  "fitRegular": {
+    "message": "Regular",
+    "description": "Regular fit"
+  },
+  "fitSlim": {
+    "message": "Slim",
+    "description": "Slim fit"
+  },
+  "fitRelaxed": {
+    "message": "Relaxed",
+    "description": "Relaxed fit"
+  },
+  "btnSavePhysical": {
+    "message": "Save",
+    "description": "Save physical button"
+  },
+  "btnClearPhysical": {
+    "message": "Clear",
+    "description": "Clear physical button"
+  },
+
+  "sectionAnchor": {
+    "message": "Cognitive Anchor",
+    "description": "Cognitive anchor section"
+  },
+  "anchorHint": {
+    "message": "Custom price anchor, e.g. \"a cup of coffee\"",
+    "description": "Anchor hint"
+  },
+  "labelAnchorName": {
+    "message": "Unit name",
+    "description": "Anchor name label"
+  },
+  "labelAnchorCost": {
+    "message": "Unit cost",
+    "description": "Anchor cost label"
+  },
+  "btnSaveAnchor": {
+    "message": "Save",
+    "description": "Save anchor button"
+  },
+  "btnClearAnchor": {
+    "message": "Clear",
+    "description": "Clear anchor button"
+  },
+
+  "btnSave": {
+    "message": "Save",
+    "description": "Generic save button"
+  },
+  "btnReset": {
+    "message": "Reset",
+    "description": "Generic reset button"
+  },
+  "btnClear": {
+    "message": "Clear",
+    "description": "Generic clear button"
+  },
+  "statusSaved": {
+    "message": "Saved",
+    "description": "Saved status"
+  },
+  "statusCleared": {
+    "message": "Cleared",
+    "description": "Cleared status"
+  },
+  "statusReset": {
+    "message": "Reset",
+    "description": "Reset status"
+  },
+  "statusError": {
+    "message": "Error",
+    "description": "Error status"
+  },
+
+  "bilingualZhEn": {
+    "message": "Bilingual (中英)",
+    "description": "Bilingual option"
+  }
+}

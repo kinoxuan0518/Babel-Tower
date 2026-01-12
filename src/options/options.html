@@ -1,0 +1,205 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>__MSG_optionsTitle__</title>
+  <style>
+    body {
+      font: 14px/1.5 -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      margin: 16px;
+      color: #222;
+      max-width: 600px;
+    }
+    h1 { font-size: 18px; margin: 0 0 12px; }
+    h2 { font-size: 14px; color: #666; margin: 16px 0 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+    .field { margin: 12px 0; }
+    label { display: block; margin-bottom: 4px; color: #555; }
+    select, input[type="text"], input[type="number"], input[type="password"] {
+      padding: 6px 8px; min-width: 200px; border: 1px solid #ccc; border-radius: 4px;
+    }
+    input[type="checkbox"] { margin-right: 6px; }
+    button { padding: 6px 12px; margin-right: 8px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; }
+    button:hover { background: #e8e8e8; }
+    .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .muted { color: #888; font-size: 12px; }
+    .ok { color: #0a7; }
+    .warn { color: #c60; }
+    hr { border: none; height: 1px; background: #eee; margin: 16px 0; }
+    .indent { margin-left: 20px; }
+  </style>
+</head>
+<body>
+  <h1 data-i18n="optionsTitle">Babel Tower Settings</h1>
+
+  <!-- Section 1: Language -->
+  <h2 data-i18n="sectionLanguage">Language</h2>
+  <div class="field">
+    <label data-i18n="labelLanguage">Select Language</label>
+    <div class="row">
+      <select id="uiLanguage">
+        <option value="zh_CN">简体中文</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+      </select>
+      <button id="saveLangBtn" data-i18n="btnSave">Save</button>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- Section 2: Currency -->
+  <h2 data-i18n="sectionCurrency">Target Currency</h2>
+  <div class="field">
+    <label data-i18n="labelCurrency">Display Currency</label>
+    <div class="row">
+      <select id="targetCurrency"></select>
+      <button id="saveBtn" data-i18n="btnSave">Save</button>
+      <button id="resetBtn" data-i18n="btnReset">Reset</button>
+      <span id="saveStatus" class="muted"></span>
+    </div>
+    <div class="muted" data-i18n="currencyHint">Prices will be converted to this currency</div>
+  </div>
+
+  <hr />
+
+  <!-- Section 3: Exchange Rates -->
+  <h2 data-i18n="sectionFx">Exchange Rates</h2>
+  <div class="field">
+    <div class="row">
+      <button id="refreshFxBtn" data-i18n="btnRefreshFx">Refresh Now</button>
+      <span id="fxStatus" class="muted" data-i18n="fxLoading">Loading...</span>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- Section 4: LLM Configuration -->
+  <h2 data-i18n="sectionLLM">LLM Configuration</h2>
+  <div class="field">
+    <div class="row">
+      <label class="row"><input id="llmEnable" type="checkbox" /> <span data-i18n="labelEnableLLM">Enable Custom LLM</span></label>
+    </div>
+    <div class="indent">
+      <div class="row" style="margin-top: 8px;">
+        <label data-i18n="labelProvider">Provider:</label>
+        <select id="llmProvider">
+          <option value="openai">OpenAI</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="moonshot">Moonshot (Kimi)</option>
+          <option value="groq">Groq</option>
+          <option value="together">Together</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      <div class="field">
+        <input id="llmEndpoint" type="text" placeholder="https://.../v1/chat/completions" style="width: 100%;" />
+      </div>
+      <div class="row">
+        <input id="llmModel" type="text" placeholder="Model name" style="width: 200px;" />
+        <button id="checkModelsBtn" data-i18n="btnListModels">List Models</button>
+      </div>
+      <div class="field">
+        <input id="llmKey" type="password" placeholder="API Key" style="width: 100%;" />
+      </div>
+      <div class="row">
+        <button id="saveLlmBtn" data-i18n="btnSaveLLM">Save</button>
+        <button id="clearLlmBtn" data-i18n="btnClearLLM">Clear</button>
+        <button id="testLlmBtn" data-i18n="btnTestLLM">Test</button>
+        <span id="llmStatus" class="muted"></span>
+      </div>
+    </div>
+    <div class="muted" style="margin-top: 8px;" data-i18n="llmSecurityHint">API Key stored locally only. All requests go through background proxy.</div>
+  </div>
+
+  <div class="field">
+    <div class="row">
+      <label class="row"><input id="llmPrefer" type="checkbox" checked /> <span data-i18n="llmPreferLabel">Prefer LLM for non-price scenarios</span></label>
+      <label class="row"><input id="showTranslation" type="checkbox" checked /> <span data-i18n="showTranslationLabel">Show translation</span></label>
+    </div>
+    <div class="row" style="margin-top: 4px;">
+      <label data-i18n="translationLangLabel">Translation language:</label>
+      <select id="translationLang">
+        <option value="zh">Chinese</option>
+        <option value="en">English</option>
+        <option value="zh-en" data-i18n="bilingualZhEn">Bilingual</option>
+      </select>
+    </div>
+  </div>
+
+  <hr />
+
+  <!-- Section 5: Interaction Mode -->
+  <h2 data-i18n="sectionInteraction">Interaction Mode</h2>
+  <div class="field">
+    <label class="row">
+      <input id="quietMode" type="checkbox" checked /> <span data-i18n="quietModeLabel">Quiet mode</span>
+    </label>
+    <div class="muted" data-i18n="quietModeHint">Only trigger via context menu or toolbar icon</div>
+  </div>
+
+  <hr />
+
+  <!-- Section 6: Term Explanation -->
+  <h2 data-i18n="sectionTermExplain">Term Explanation</h2>
+  <div class="field">
+    <div class="row">
+      <label class="row"><input id="explainToggle" type="checkbox" checked /> <span data-i18n="enableExplainLabel">Enable term explanation</span></label>
+      <label data-i18n="explainLangLabel">Language:</label>
+      <select id="explainLang">
+        <option value="zh">Chinese</option>
+        <option value="en">English</option>
+        <option value="zh-en" data-i18n="bilingualZhEn">Bilingual</option>
+      </select>
+    </div>
+    <div class="muted" data-i18n="explainHint">Use LLM to explain non-price selections</div>
+  </div>
+
+  <hr />
+
+  <!-- Section 7: Body Data -->
+  <h2 data-i18n="sectionPhysical">Body Data</h2>
+  <div class="field">
+    <div class="row">
+      <label><span data-i18n="labelHeight">Height (cm)</span>: <input id="physHeight" type="number" min="120" max="220" step="1" style="width: 80px;" /></label>
+      <label><span data-i18n="labelWeight">Weight (kg)</span>: <input id="physWeight" type="number" min="30" max="200" step="0.5" style="width: 80px;" /></label>
+      <label><span data-i18n="labelFoot">Foot (cm)</span>: <input id="physFoot" type="number" min="20" max="35" step="0.1" style="width: 80px;" /></label>
+      <label><span data-i18n="labelFit">Fit</span>:
+        <select id="physFit">
+          <option value="regular" data-i18n="fitRegular">Regular</option>
+          <option value="slim" data-i18n="fitSlim">Slim</option>
+          <option value="relaxed" data-i18n="fitRelaxed">Relaxed</option>
+        </select>
+      </label>
+    </div>
+    <div class="row" style="margin-top: 8px;">
+      <button id="savePhysBtn" data-i18n="btnSavePhysical">Save</button>
+      <button id="clearPhysBtn" data-i18n="btnClearPhysical">Clear</button>
+      <span id="physStatus" class="muted"></span>
+    </div>
+    <div class="muted" data-i18n="physicalHint">For size estimation. Stored locally only.</div>
+  </div>
+
+  <hr />
+
+  <!-- Section 8: Cognitive Anchor -->
+  <h2 data-i18n="sectionAnchor">Cognitive Anchor</h2>
+  <div class="field">
+    <div class="row">
+      <input id="anchorName" type="text" placeholder="e.g., milk tea" style="width: 200px;" />
+      <input id="anchorCost" type="number" step="0.01" min="0" placeholder="Unit cost" style="width: 100px;" />
+      <span class="muted">Currency: <span id="anchorCurrencyHint">CNY</span></span>
+    </div>
+    <div class="row" style="margin-top: 8px;">
+      <button id="saveAnchorBtn" data-i18n="btnSaveAnchor">Save</button>
+      <button id="clearAnchorBtn" data-i18n="btnClearAnchor">Clear</button>
+      <span id="anchorStatus" class="muted"></span>
+    </div>
+    <div class="muted" data-i18n="anchorHint">Custom price anchor, e.g. "a cup of coffee"</div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

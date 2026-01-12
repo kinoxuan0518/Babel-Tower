@@ -1,0 +1,14 @@
+{
+  "user_context": {
+    "location": "Shanghai, China",
+    "profession": "Developer",
+    "currency": "CNY"
+  },
+  "cognitive_anchors": {
+    "coffee_benchmark": { "name": "coffee", "cost": 15 },
+    "subscription_benchmark": { "name": "Netflix subscription", "cost": 25 }
+  },
+  "system_rules": {
+    "max_output_chars": 280
+  }
+}

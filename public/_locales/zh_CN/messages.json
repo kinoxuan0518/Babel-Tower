@@ -1,0 +1,300 @@
+{
+  "extName": {
+    "message": "Babel Tower",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "认知翻译层：理解优先于翻译",
+    "description": "Extension description"
+  },
+  "optionsTitle": {
+    "message": "Babel Tower 设置",
+    "description": "Options page title"
+  },
+  "contextMenuExplain": {
+    "message": "Babel Tower: 解释选中内容",
+    "description": "Context menu item"
+  },
+
+  "sectionLanguage": {
+    "message": "界面语言",
+    "description": "Language section title"
+  },
+  "labelLanguage": {
+    "message": "选择语言",
+    "description": "Language selector label"
+  },
+  "langZh": {
+    "message": "简体中文",
+    "description": "Chinese language option"
+  },
+  "langEn": {
+    "message": "English",
+    "description": "English language option"
+  },
+  "langJa": {
+    "message": "日本語",
+    "description": "Japanese language option"
+  },
+  "langKo": {
+    "message": "한국어",
+    "description": "Korean language option"
+  },
+  "languageHint": {
+    "message": "更改语言后需要重新打开设置页生效",
+    "description": "Language change hint"
+  },
+
+  "sectionCurrency": {
+    "message": "目标货币",
+    "description": "Currency section title"
+  },
+  "labelCurrency": {
+    "message": "展示货币",
+    "description": "Currency selector label"
+  },
+  "currencyHint": {
+    "message": "价格将换算为此货币显示",
+    "description": "Currency hint"
+  },
+
+  "sectionFx": {
+    "message": "汇率数据",
+    "description": "Exchange rate section title"
+  },
+  "btnRefreshFx": {
+    "message": "立即刷新",
+    "description": "Refresh FX button"
+  },
+  "fxLoading": {
+    "message": "加载中...",
+    "description": "FX loading state"
+  },
+  "fxSource": {
+    "message": "来源",
+    "description": "FX source label"
+  },
+  "fxUpdated": {
+    "message": "更新时间",
+    "description": "FX updated label"
+  },
+  "fxCurrencies": {
+    "message": "币种数",
+    "description": "FX currencies count"
+  },
+  "fxRefreshing": {
+    "message": "正在刷新...",
+    "description": "FX refreshing state"
+  },
+  "fxFailed": {
+    "message": "刷新失败",
+    "description": "FX refresh failed"
+  },
+  "fxNoData": {
+    "message": "暂无实时汇率（使用内置近似值）",
+    "description": "No FX data"
+  },
+
+  "sectionLLM": {
+    "message": "LLM 设置",
+    "description": "LLM section title"
+  },
+  "labelEnableLLM": {
+    "message": "启用自定义 LLM",
+    "description": "Enable LLM checkbox"
+  },
+  "labelProvider": {
+    "message": "提供商",
+    "description": "Provider label"
+  },
+  "labelEndpoint": {
+    "message": "API 地址",
+    "description": "Endpoint label"
+  },
+  "labelModel": {
+    "message": "模型",
+    "description": "Model label"
+  },
+  "labelApiKey": {
+    "message": "API Key",
+    "description": "API Key label"
+  },
+  "btnSaveLLM": {
+    "message": "保存",
+    "description": "Save LLM button"
+  },
+  "btnTestLLM": {
+    "message": "测试",
+    "description": "Test LLM button"
+  },
+  "btnClearLLM": {
+    "message": "清除",
+    "description": "Clear LLM button"
+  },
+  "btnListModels": {
+    "message": "查询模型",
+    "description": "List models button"
+  },
+  "llmPreferLabel": {
+    "message": "非价格场景优先用大模型",
+    "description": "LLM prefer checkbox"
+  },
+  "showTranslationLabel": {
+    "message": "显示翻译",
+    "description": "Show translation checkbox"
+  },
+  "translationLangLabel": {
+    "message": "翻译语言",
+    "description": "Translation language label"
+  },
+  "llmSecurityHint": {
+    "message": "API Key 仅存储在本地浏览器，所有请求通过后台代理保护",
+    "description": "LLM security hint"
+  },
+  "llmTestSuccess": {
+    "message": "测试成功",
+    "description": "LLM test success"
+  },
+  "llmTestFailed": {
+    "message": "测试失败",
+    "description": "LLM test failed"
+  },
+  "llmTesting": {
+    "message": "测试中...",
+    "description": "LLM testing"
+  },
+
+  "sectionInteraction": {
+    "message": "交互方式",
+    "description": "Interaction section title"
+  },
+  "quietModeLabel": {
+    "message": "安静模式",
+    "description": "Quiet mode checkbox"
+  },
+  "quietModeHint": {
+    "message": "仅通过右键菜单或工具栏图标触发，不自动弹出",
+    "description": "Quiet mode hint"
+  },
+
+  "sectionTermExplain": {
+    "message": "名词解释",
+    "description": "Term explanation section"
+  },
+  "enableExplainLabel": {
+    "message": "启用名词解释",
+    "description": "Enable explain checkbox"
+  },
+  "explainLangLabel": {
+    "message": "解释语言",
+    "description": "Explain language label"
+  },
+  "explainHint": {
+    "message": "选中非价格文本时，调用 LLM 进行解释",
+    "description": "Explain hint"
+  },
+
+  "sectionPhysical": {
+    "message": "身体数据",
+    "description": "Physical data section"
+  },
+  "physicalHint": {
+    "message": "用于尺码估算，仅存储在本地",
+    "description": "Physical data hint"
+  },
+  "labelHeight": {
+    "message": "身高 (cm)",
+    "description": "Height label"
+  },
+  "labelWeight": {
+    "message": "体重 (kg)",
+    "description": "Weight label"
+  },
+  "labelFoot": {
+    "message": "脚长 (cm)",
+    "description": "Foot length label"
+  },
+  "labelFit": {
+    "message": "版型偏好",
+    "description": "Fit preference label"
+  },
+  "fitRegular": {
+    "message": "标准",
+    "description": "Regular fit"
+  },
+  "fitSlim": {
+    "message": "修身",
+    "description": "Slim fit"
+  },
+  "fitRelaxed": {
+    "message": "宽松",
+    "description": "Relaxed fit"
+  },
+  "btnSavePhysical": {
+    "message": "保存",
+    "description": "Save physical button"
+  },
+  "btnClearPhysical": {
+    "message": "清除",
+    "description": "Clear physical button"
+  },
+
+  "sectionAnchor": {
+    "message": "认知单位",
+    "description": "Cognitive anchor section"
+  },
+  "anchorHint": {
+    "message": "自定义价格锚点，如「一杯奶茶」",
+    "description": "Anchor hint"
+  },
+  "labelAnchorName": {
+    "message": "单位名称",
+    "description": "Anchor name label"
+  },
+  "labelAnchorCost": {
+    "message": "单位成本",
+    "description": "Anchor cost label"
+  },
+  "btnSaveAnchor": {
+    "message": "保存",
+    "description": "Save anchor button"
+  },
+  "btnClearAnchor": {
+    "message": "清除",
+    "description": "Clear anchor button"
+  },
+
+  "btnSave": {
+    "message": "保存",
+    "description": "Generic save button"
+  },
+  "btnReset": {
+    "message": "重置",
+    "description": "Generic reset button"
+  },
+  "btnClear": {
+    "message": "清除",
+    "description": "Generic clear button"
+  },
+  "statusSaved": {
+    "message": "已保存",
+    "description": "Saved status"
+  },
+  "statusCleared": {
+    "message": "已清除",
+    "description": "Cleared status"
+  },
+  "statusReset": {
+    "message": "已重置",
+    "description": "Reset status"
+  },
+  "statusError": {
+    "message": "错误",
+    "description": "Error status"
+  },
+
+  "bilingualZhEn": {
+    "message": "中英双语",
+    "description": "Bilingual option"
+  }
+}

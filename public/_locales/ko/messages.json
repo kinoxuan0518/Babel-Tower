@@ -1,0 +1,300 @@
+{
+  "extName": {
+    "message": "Babel Tower",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "인지 번역 레이어: 번역보다 이해를 우선",
+    "description": "Extension description"
+  },
+  "optionsTitle": {
+    "message": "Babel Tower 설정",
+    "description": "Options page title"
+  },
+  "contextMenuExplain": {
+    "message": "Babel Tower: 선택 내용 설명",
+    "description": "Context menu item"
+  },
+
+  "sectionLanguage": {
+    "message": "언어",
+    "description": "Language section title"
+  },
+  "labelLanguage": {
+    "message": "언어 선택",
+    "description": "Language selector label"
+  },
+  "langZh": {
+    "message": "简体中文",
+    "description": "Chinese language option"
+  },
+  "langEn": {
+    "message": "English",
+    "description": "English language option"
+  },
+  "langJa": {
+    "message": "日本語",
+    "description": "Japanese language option"
+  },
+  "langKo": {
+    "message": "한국어",
+    "description": "Korean language option"
+  },
+  "languageHint": {
+    "message": "언어 변경 후 설정 페이지를 다시 열어주세요",
+    "description": "Language change hint"
+  },
+
+  "sectionCurrency": {
+    "message": "표시 통화",
+    "description": "Currency section title"
+  },
+  "labelCurrency": {
+    "message": "통화 선택",
+    "description": "Currency selector label"
+  },
+  "currencyHint": {
+    "message": "가격이 이 통화로 환산됩니다",
+    "description": "Currency hint"
+  },
+
+  "sectionFx": {
+    "message": "환율",
+    "description": "Exchange rate section title"
+  },
+  "btnRefreshFx": {
+    "message": "지금 새로고침",
+    "description": "Refresh FX button"
+  },
+  "fxLoading": {
+    "message": "로딩 중...",
+    "description": "FX loading state"
+  },
+  "fxSource": {
+    "message": "출처",
+    "description": "FX source label"
+  },
+  "fxUpdated": {
+    "message": "업데이트",
+    "description": "FX updated label"
+  },
+  "fxCurrencies": {
+    "message": "통화 수",
+    "description": "FX currencies count"
+  },
+  "fxRefreshing": {
+    "message": "새로고침 중...",
+    "description": "FX refreshing state"
+  },
+  "fxFailed": {
+    "message": "새로고침 실패",
+    "description": "FX refresh failed"
+  },
+  "fxNoData": {
+    "message": "실시간 환율 없음 (기본값 사용)",
+    "description": "No FX data"
+  },
+
+  "sectionLLM": {
+    "message": "LLM 설정",
+    "description": "LLM section title"
+  },
+  "labelEnableLLM": {
+    "message": "커스텀 LLM 활성화",
+    "description": "Enable LLM checkbox"
+  },
+  "labelProvider": {
+    "message": "제공자",
+    "description": "Provider label"
+  },
+  "labelEndpoint": {
+    "message": "API 엔드포인트",
+    "description": "Endpoint label"
+  },
+  "labelModel": {
+    "message": "모델",
+    "description": "Model label"
+  },
+  "labelApiKey": {
+    "message": "API 키",
+    "description": "API Key label"
+  },
+  "btnSaveLLM": {
+    "message": "저장",
+    "description": "Save LLM button"
+  },
+  "btnTestLLM": {
+    "message": "테스트",
+    "description": "Test LLM button"
+  },
+  "btnClearLLM": {
+    "message": "지우기",
+    "description": "Clear LLM button"
+  },
+  "btnListModels": {
+    "message": "모델 목록",
+    "description": "List models button"
+  },
+  "llmPreferLabel": {
+    "message": "가격 외 시나리오에서 LLM 우선",
+    "description": "LLM prefer checkbox"
+  },
+  "showTranslationLabel": {
+    "message": "번역 표시",
+    "description": "Show translation checkbox"
+  },
+  "translationLangLabel": {
+    "message": "번역 언어",
+    "description": "Translation language label"
+  },
+  "llmSecurityHint": {
+    "message": "API 키는 로컬에만 저장됩니다. 모든 요청은 백그라운드 프록시를 통합니다.",
+    "description": "LLM security hint"
+  },
+  "llmTestSuccess": {
+    "message": "테스트 성공",
+    "description": "LLM test success"
+  },
+  "llmTestFailed": {
+    "message": "테스트 실패",
+    "description": "LLM test failed"
+  },
+  "llmTesting": {
+    "message": "테스트 중...",
+    "description": "LLM testing"
+  },
+
+  "sectionInteraction": {
+    "message": "상호작용 모드",
+    "description": "Interaction section title"
+  },
+  "quietModeLabel": {
+    "message": "조용한 모드",
+    "description": "Quiet mode checkbox"
+  },
+  "quietModeHint": {
+    "message": "우클릭 메뉴 또는 툴바 아이콘으로만 실행",
+    "description": "Quiet mode hint"
+  },
+
+  "sectionTermExplain": {
+    "message": "용어 설명",
+    "description": "Term explanation section"
+  },
+  "enableExplainLabel": {
+    "message": "용어 설명 활성화",
+    "description": "Enable explain checkbox"
+  },
+  "explainLangLabel": {
+    "message": "설명 언어",
+    "description": "Explain language label"
+  },
+  "explainHint": {
+    "message": "가격 외 텍스트를 LLM으로 설명",
+    "description": "Explain hint"
+  },
+
+  "sectionPhysical": {
+    "message": "신체 데이터",
+    "description": "Physical data section"
+  },
+  "physicalHint": {
+    "message": "사이즈 추정용. 로컬에만 저장됩니다.",
+    "description": "Physical data hint"
+  },
+  "labelHeight": {
+    "message": "키 (cm)",
+    "description": "Height label"
+  },
+  "labelWeight": {
+    "message": "몸무게 (kg)",
+    "description": "Weight label"
+  },
+  "labelFoot": {
+    "message": "발 길이 (cm)",
+    "description": "Foot length label"
+  },
+  "labelFit": {
+    "message": "핏 선호도",
+    "description": "Fit preference label"
+  },
+  "fitRegular": {
+    "message": "표준",
+    "description": "Regular fit"
+  },
+  "fitSlim": {
+    "message": "슬림",
+    "description": "Slim fit"
+  },
+  "fitRelaxed": {
+    "message": "여유있는",
+    "description": "Relaxed fit"
+  },
+  "btnSavePhysical": {
+    "message": "저장",
+    "description": "Save physical button"
+  },
+  "btnClearPhysical": {
+    "message": "지우기",
+    "description": "Clear physical button"
+  },
+
+  "sectionAnchor": {
+    "message": "인지 앵커",
+    "description": "Cognitive anchor section"
+  },
+  "anchorHint": {
+    "message": "커스텀 가격 앵커 (예: 커피 한 잔)",
+    "description": "Anchor hint"
+  },
+  "labelAnchorName": {
+    "message": "단위 이름",
+    "description": "Anchor name label"
+  },
+  "labelAnchorCost": {
+    "message": "단위 비용",
+    "description": "Anchor cost label"
+  },
+  "btnSaveAnchor": {
+    "message": "저장",
+    "description": "Save anchor button"
+  },
+  "btnClearAnchor": {
+    "message": "지우기",
+    "description": "Clear anchor button"
+  },
+
+  "btnSave": {
+    "message": "저장",
+    "description": "Generic save button"
+  },
+  "btnReset": {
+    "message": "초기화",
+    "description": "Generic reset button"
+  },
+  "btnClear": {
+    "message": "지우기",
+    "description": "Generic clear button"
+  },
+  "statusSaved": {
+    "message": "저장됨",
+    "description": "Saved status"
+  },
+  "statusCleared": {
+    "message": "지워짐",
+    "description": "Cleared status"
+  },
+  "statusReset": {
+    "message": "초기화됨",
+    "description": "Reset status"
+  },
+  "statusError": {
+    "message": "오류",
+    "description": "Error status"
+  },
+
+  "bilingualZhEn": {
+    "message": "이중 언어 (중영)",
+    "description": "Bilingual option"
+  }
+}

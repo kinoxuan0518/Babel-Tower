@@ -1,0 +1,21 @@
+{
+  "name": "babel-tower-v3",
+  "version": "0.3.0",
+  "description": "Cognitive Translation Layer Chrome Extension - Optimized Edition",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w",
+    "clean": "rm -rf dist/*"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-terser": "^0.4.0",
+    "rollup": "^4.0.0",
+    "rollup-plugin-copy": "^3.5.0"
+  },
+  "dependencies": {
+    "dompurify": "^3.0.6"
+  }
+}
