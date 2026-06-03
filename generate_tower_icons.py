@@ -190,7 +190,7 @@ def draw_tower(size: int) -> List[Tuple[int,int,int,int]]:
 
 
 def main():
-    out_dir = os.path.join(os.path.dirname(__file__), 'icons')
+    out_dir = os.path.join(os.path.dirname(__file__), 'public', 'icons')
     os.makedirs(out_dir, exist_ok=True)
     sizes = [16, 32, 48, 128]
     for s in sizes:

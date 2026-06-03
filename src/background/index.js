@@ -30,16 +30,6 @@ function invertBaseCNYRates(rates) {
 }
 
 /**
- * Fetch from exchangerate.host
- */
-async function fetchFromExchangerateHost() {
-  const res = await fetchWithTimeout('https://api.exchangerate.host/latest?base=CNY', {}, TIMING.FX_FETCH_TIMEOUT_MS);
-  const data = await res.json();
-  if (!data?.rates) throw new Error('exchangerate.host: no rates');
-  return { fxToCNY: invertBaseCNYRates(data.rates), source: 'exchangerate.host' };
-}
-
-/**
  * Fetch from frankfurter.app
  */
 async function fetchFromFrankfurter() {
@@ -95,7 +85,6 @@ async function fetchAndStoreFx() {
     });
     
     const tasks = [
-      fetchFromExchangerateHost(),
       fetchFromFrankfurter(),
       fetchFromERAPI(),
       fetchFromJsDelivr(),
@@ -141,17 +130,18 @@ async function fetchAndStoreFx() {
  */
 async function proxyLLMRequest(endpoint, apiKey, body) {
   const isGemini = endpoint.includes('googleapis.com');
-  
+
   const headers = { 'Content-Type': 'application/json' };
-  let url = endpoint;
-  
+
   if (isGemini) {
-    url = `${endpoint}?key=${apiKey}`;
+    // Pass the key via header instead of the query string so it never
+    // lands in service-worker request logs / history.
+    headers['x-goog-api-key'] = apiKey;
   } else {
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
-  
-  const res = await fetch(url, {
+
+  const res = await fetch(endpoint, {
     method: 'POST',
     headers,
     body: JSON.stringify(body)
@@ -218,7 +208,9 @@ async function listGeminiModels(apiKey) {
   if (!apiKey) return { error: 'Missing API Key' };
   
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+      headers: { 'x-goog-api-key': apiKey }
+    });
     if (!res.ok) {
       const t = await res.text().catch(() => '');
       throw new Error(`HTTP ${res.status}: ${t}`);
