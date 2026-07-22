@@ -3,7 +3,7 @@
  * Converts limited markdown to HTML safely
  */
 
-import { escapeHTML } from '../../shared/utils.js';
+import { escapeHTML } from '../../shared/utils';
 
 /**
  * Convert simple markdown to HTML with XSS protection

@@ -3,8 +3,8 @@
  * Generates cognitive insights for price without LLM
  */
 
-import { FALLBACK_FX_TO_CNY, COGNITIVE_ANCHORS, PPP_TABLE } from '../../shared/constants.js';
-import { normalizeCurrency } from '../../shared/utils.js';
+import { FALLBACK_FX_TO_CNY, COGNITIVE_ANCHORS, PPP_TABLE } from '../../shared/constants';
+import { normalizeCurrency } from '../../shared/utils';
 
 /**
  * Convert amount to target currency via CNY

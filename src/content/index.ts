@@ -9,13 +9,13 @@
  * - Centralized state management with caching
  */
 
-import { MSG_TYPES, TIMING } from '../shared/constants.js';
-import { debounce, logger } from '../shared/utils.js';
-import { initializeState, getState, updateState } from './state/index.js';
-import { extractPrice, parseSizeContext, isFeatureSelection, shouldExplain } from './parsers/index.js';
-import { generatePriceHeuristic, generateSizeHeuristic, generatePackHeuristic, gatherPageContext, classifyPageIntentHeuristic, isPackDimsNotHelpful, isGarmentContext } from './heuristics/index.js';
-import { hasLLM, generateCognitiveWithLLM, generateTranslationWithLLM, classifyPageIntentWithLLM } from './llm/index.js';
-import { showOverlay, updateOverlay, removeOverlay, getSelectionCoordinates } from './overlay/index.js';
+import { MSG_TYPES, TIMING } from '../shared/constants';
+import { debounce, logger } from '../shared/utils';
+import { initializeState, getState, updateState } from './state/index';
+import { extractPrice, parseSizeContext, isFeatureSelection, shouldExplain } from './parsers/index';
+import { generatePriceHeuristic, generateSizeHeuristic, generatePackHeuristic, gatherPageContext, classifyPageIntentHeuristic, isPackDimsNotHelpful, isGarmentContext } from './heuristics/index';
+import { hasLLM, generateCognitiveWithLLM, generateTranslationWithLLM, classifyPageIntentWithLLM } from './llm/index';
+import { showOverlay, updateOverlay, removeOverlay, getSelectionCoordinates } from './overlay/index';
 
 // Prevent duplicate initialization
 if (window.__BT_RUNNING) {

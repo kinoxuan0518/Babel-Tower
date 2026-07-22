@@ -7,8 +7,8 @@
  * - Context menu and toolbar icon handling
  */
 
-import { STORAGE_KEYS, MSG_TYPES, TIMING } from '../shared/constants.js';
-import { fetchWithTimeout } from '../shared/utils.js';
+import { STORAGE_KEYS, MSG_TYPES, TIMING } from '../shared/constants';
+import { fetchWithTimeout } from '../shared/utils';
 
 // ==================== Exchange Rate Fetching ====================
 
