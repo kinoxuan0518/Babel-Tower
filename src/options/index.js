@@ -1,124 +1,26 @@
 /**
  * Babel Tower v3 - Options Page Script
+ * Refactored: Modular architecture with separated concerns
  */
 
-import { CURRENCIES, LLM_PRESETS, STORAGE_KEYS, MSG_TYPES, SUPPORTED_LANGUAGES } from '../shared/constants.js';
+import { STORAGE_KEYS, MSG_TYPES } from '../shared/constants.js';
+import { 
+  loadLanguageFile, applyI18n, i18n, switchLanguage, initLanguage 
+} from './language.js';
+import { 
+  renderCurrencyOptions, initCurrency, saveCurrency, resetCurrency, updateFxStatus, refreshFx 
+} from './currency.js';
+import { 
+  detectProviderByEndpoint, applyPreset, setLlmInputsEnabled, initLlm, saveLlmConfig, 
+  clearLlmConfig, testLlmConnection, listModels, handleLlmEnableToggle 
+} from './llm-config.js';
+import { initPhysical, savePhysical, clearPhysical } from './physical.js';
+import { initAnchor, saveAnchor, clearAnchor } from './anchor.js';
+import { initPreferences, saveExplainSettings, saveTranslationSettings, saveQuietMode, saveLlmPrefer } from './preferences.js';
 
 const $ = (id) => document.getElementById(id);
 
-// Current language messages cache
-let currentMessages = {};
-
-/**
- * Load language file dynamically
- */
-async function loadLanguageFile(langCode) {
-  try {
-    const url = chrome.runtime.getURL(`_locales/${langCode}/messages.json`);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to load ${langCode}`);
-    return await res.json();
-  } catch (err) {
-    console.warn('[BT] Failed to load language file:', langCode, err);
-    // Fallback to English
-    if (langCode !== 'en') {
-      return loadLanguageFile('en');
-    }
-    return {};
-  }
-}
-
-/**
- * Apply i18n to all elements with data-i18n attribute
- */
-function applyI18n() {
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    const msg = currentMessages[key]?.message;
-    if (msg) el.textContent = msg;
-  });
-  // Update document title
-  const titleMsg = currentMessages['optionsTitle']?.message;
-  if (titleMsg) document.title = titleMsg;
-}
-
-/**
- * Get localized message with fallback
- */
-function i18n(key, fallback = '') {
-  return currentMessages[key]?.message || fallback;
-}
-
-function renderCurrencyOptions(sel, current) {
-  sel.innerHTML = '';
-  CURRENCIES.forEach(code => {
-    const opt = document.createElement('option');
-    opt.value = code;
-    opt.textContent = code;
-    if ((current || '').toUpperCase() === code) opt.selected = true;
-    sel.appendChild(opt);
-  });
-}
-
-function detectProviderByEndpoint(endpoint) {
-  const url = (endpoint || '').toLowerCase();
-  if (!url) return 'openai';
-  if (url.includes('openai.com')) return 'openai';
-  if (url.includes('deepseek.com')) return 'deepseek';
-  if (url.includes('moonshot.cn')) return 'moonshot';
-  if (url.includes('api.groq.com')) return 'groq';
-  if (url.includes('together.xyz')) return 'together';
-  if (url.includes('googleapis.com')) return 'gemini';
-  return 'custom';
-}
-
-function applyPreset(providerKey) {
-  const llmEndpoint = $('llmEndpoint');
-  const llmModel = $('llmModel');
-  const p = LLM_PRESETS[providerKey] || LLM_PRESETS.custom;
-  if (providerKey !== 'custom') {
-    llmEndpoint.value = p.endpoint;
-    llmModel.value = p.model;
-  }
-}
-
-function setLlmInputsEnabled(on) {
-  ['llmProvider', 'llmEndpoint', 'llmModel', 'llmKey', 'saveLlmBtn', 'checkModelsBtn'].forEach(id => {
-    const el = $(id);
-    if (el) el.disabled = !on;
-  });
-}
-
-let lastFxAt = 0;
-
-/**
- * Switch language and apply immediately
- */
-async function switchLanguage(langCode) {
-  currentMessages = await loadLanguageFile(langCode);
-  applyI18n();
-  // Save to storage
-  await chrome.storage.local.set({ [STORAGE_KEYS.UI_LANG]: langCode });
-}
-
 async function init() {
-  // Load saved language or detect from browser
-  const stored = await chrome.storage.local.get([STORAGE_KEYS.UI_LANG]);
-  let langCode = stored[STORAGE_KEYS.UI_LANG];
-  
-  if (!langCode) {
-    // Detect from browser language
-    const browserLang = chrome.i18n.getUILanguage();
-    if (browserLang.startsWith('zh')) langCode = 'zh_CN';
-    else if (browserLang.startsWith('ja')) langCode = 'ja';
-    else if (browserLang.startsWith('ko')) langCode = 'ko';
-    else langCode = 'en';
-  }
-  
-  // Load language file and apply
-  currentMessages = await loadLanguageFile(langCode);
-  applyI18n();
-
   const uiLanguage = $('uiLanguage');
   const saveLangBtn = $('saveLangBtn');
   const sel = $('targetCurrency');
@@ -157,88 +59,14 @@ async function init() {
   const showTranslation = $('showTranslation');
   const translationLang = $('translationLang');
 
-  // Load current settings
-  chrome.storage.local.get([
-    STORAGE_KEYS.UI_LANG,
-    STORAGE_KEYS.TARGET_CURRENCY, STORAGE_KEYS.FX_LAST_UPDATED, STORAGE_KEYS.FX_SOURCE,
-    STORAGE_KEYS.FX_TO_CNY, STORAGE_KEYS.FX_FETCHING, STORAGE_KEYS.FX_FETCH_ERROR,
-    STORAGE_KEYS.ANCHOR_UNIT, STORAGE_KEYS.EXPLAIN_ENABLED, STORAGE_KEYS.EXPLAIN_LANG,
-    STORAGE_KEYS.LLM_CONFIG, STORAGE_KEYS.USER_PHYSICAL, STORAGE_KEYS.LLM_PREFER,
-    STORAGE_KEYS.QUIET_MODE, STORAGE_KEYS.SHOW_TRANSLATION, STORAGE_KEYS.TRANSLATION_LANG
-  ], (res) => {
-    // Language - detect current UI language
-    const browserLang = chrome.i18n.getUILanguage().replace('-', '_');
-    const storedLang = res[STORAGE_KEYS.UI_LANG];
-    
-    // Match logic: zh or zh_CN -> zh_CN, en or en_US -> en, etc.
-    let detectedLang = storedLang || browserLang;
-    if (detectedLang.startsWith('zh')) detectedLang = 'zh_CN';
-    else if (detectedLang.startsWith('ja')) detectedLang = 'ja';
-    else if (detectedLang.startsWith('ko')) detectedLang = 'ko';
-    else if (detectedLang.startsWith('en')) detectedLang = 'en';
-    else detectedLang = 'en'; // fallback
-    
-    uiLanguage.value = detectedLang;
-
-    const cur = (res[STORAGE_KEYS.TARGET_CURRENCY] || '').toUpperCase();
-    renderCurrencyOptions(sel, cur || 'CNY');
-    anchorCurrencyHint.textContent = cur || 'CNY';
-
-    // FX status
-    if (res[STORAGE_KEYS.FX_LAST_UPDATED]) {
-      const dt = new Date(res[STORAGE_KEYS.FX_LAST_UPDATED]);
-      const count = res[STORAGE_KEYS.FX_TO_CNY] ? Object.keys(res[STORAGE_KEYS.FX_TO_CNY]).length : 0;
-      fxStatus.textContent = `${i18n('fxSource', 'Source')}: ${res[STORAGE_KEYS.FX_SOURCE] || 'unknown'} | ${i18n('fxUpdated', 'Updated')}: ${dt.toLocaleString()} | ${count} ${i18n('fxCurrencies', 'currencies')}`;
-      lastFxAt = +res[STORAGE_KEYS.FX_LAST_UPDATED] || 0;
-    } else {
-      fxStatus.textContent = i18n('fxNoData', 'No FX data yet (using fallback rates)');
-    }
-    if (res[STORAGE_KEYS.FX_FETCHING]) fxStatus.textContent = i18n('fxRefreshing', 'Refreshing...');
-    if (res[STORAGE_KEYS.FX_FETCH_ERROR]) {
-      fxStatus.textContent = i18n('fxFailed', 'Refresh failed') + ': ' + res[STORAGE_KEYS.FX_FETCH_ERROR];
-      fxStatus.className = 'muted warn';
-    }
-
-    // Anchor
-    if (res[STORAGE_KEYS.ANCHOR_UNIT]) {
-      anchorName.value = res[STORAGE_KEYS.ANCHOR_UNIT].name || '';
-      anchorCost.value = res[STORAGE_KEYS.ANCHOR_UNIT].cost ?? '';
-      if (res[STORAGE_KEYS.ANCHOR_UNIT].currency) {
-        anchorCurrencyHint.textContent = res[STORAGE_KEYS.ANCHOR_UNIT].currency;
-      }
-    }
-
-    // Explain
-    explainToggle.checked = res[STORAGE_KEYS.EXPLAIN_ENABLED] !== false;
-    explainLang.value = res[STORAGE_KEYS.EXPLAIN_LANG] || 'zh';
-
-    // LLM
-    const llm = res[STORAGE_KEYS.LLM_CONFIG] || {};
-    const hasLLM = !!(llm.endpoint && llm.api_key);
-    llmEnable.checked = hasLLM;
-    const storedProvider = llm.provider || detectProviderByEndpoint(llm.endpoint);
-    llmProvider.value = storedProvider;
-    llmEndpoint.value = llm.endpoint || LLM_PRESETS[storedProvider]?.endpoint || '';
-    llmModel.value = llm.model || LLM_PRESETS[storedProvider]?.model || '';
-    llmKey.value = llm.api_key || '';
-    setLlmInputsEnabled(llmEnable.checked);
-    llmPrefer.checked = res[STORAGE_KEYS.LLM_PREFER] !== false;
-    showTranslation.checked = res[STORAGE_KEYS.SHOW_TRANSLATION] !== false;
-    translationLang.value = res[STORAGE_KEYS.TRANSLATION_LANG] || res[STORAGE_KEYS.EXPLAIN_LANG] || 'zh';
-
-    // Physical
-    const p = res[STORAGE_KEYS.USER_PHYSICAL] || {};
-    if (typeof p.height_cm === 'number') physHeight.value = p.height_cm;
-    if (typeof p.weight_kg === 'number') physWeight.value = p.weight_kg;
-    if (typeof p.foot_length_cm === 'number') physFoot.value = p.foot_length_cm;
-    physFit.value = p.preferred_fit || 'regular';
-
-    // Quiet mode
-    quietMode.checked = res[STORAGE_KEYS.QUIET_MODE] !== false;
-  });
-
-  // Set current language in selector
-  uiLanguage.value = langCode;
+  // Initialize all modules
+  await initLanguage(uiLanguage);
+  await initCurrency(sel, anchorCurrencyHint);
+  await initPreferences({ explainToggle, explainLang, showTranslation, translationLang, quietMode, llmPrefer });
+  await initPhysical({ physHeight, physWeight, physFoot, physFit });
+  await initAnchor({ anchorName, anchorCost, anchorCurrencyHint });
+  await initLlm({ llmEnable, llmEndpoint, llmModel, llmKey, llmProvider, llmPrefer }, i18n);
+  updateFxStatus(fxStatus, i18n);
 
   // Language save button handler - switch language immediately
   if (saveLangBtn) {
