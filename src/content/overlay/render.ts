@@ -4,9 +4,9 @@
  */
 
 import DOMPurify from 'dompurify';
-import { simpleMarkdown } from './markdown.js';
-import { escapeHTML } from '../../shared/utils.js';
-import { MSG_TYPES } from '../../shared/constants.js';
+import { simpleMarkdown } from './markdown';
+import { escapeHTML } from '../../shared/utils';
+import { MSG_TYPES } from '../../shared/constants';
 
 let currentOverlay = null;
 

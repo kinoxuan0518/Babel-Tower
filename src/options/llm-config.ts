@@ -3,7 +3,7 @@
  * Handles LLM provider selection, endpoint configuration, and testing
  */
 
-import { LLM_PRESETS, STORAGE_KEYS, MSG_TYPES } from '../shared/constants.js';
+import { LLM_PRESETS, STORAGE_KEYS, MSG_TYPES } from '../shared/constants';
 
 /**
  * Detect provider by endpoint URL

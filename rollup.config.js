@@ -1,6 +1,7 @@
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import terser from '@rollup/plugin-terser';
+import typescript from '@rollup/plugin-typescript';
 import copy from 'rollup-plugin-copy';
 
 const production = !process.env.ROLLUP_WATCH;
@@ -8,7 +9,7 @@ const production = !process.env.ROLLUP_WATCH;
 export default [
   // Content Script
   {
-    input: 'src/content/index.js',
+    input: 'src/content/index.ts',
     output: {
       file: 'dist/content.js',
       format: 'iife',
@@ -18,12 +19,13 @@ export default [
     plugins: [
       resolve({ browser: true }),
       commonjs(),
+      typescript({ tsconfig: './tsconfig.json' }),
       production && terser()
     ]
   },
   // Background Service Worker
   {
-    input: 'src/background/index.js',
+    input: 'src/background/index.ts',
     output: {
       file: 'dist/background.js',
       format: 'es',
@@ -32,12 +34,13 @@ export default [
     plugins: [
       resolve({ browser: true }),
       commonjs(),
+      typescript({ tsconfig: './tsconfig.json' }),
       production && terser()
     ]
   },
   // Options Page
   {
-    input: 'src/options/index.js',
+    input: 'src/options/index.ts',
     output: {
       file: 'dist/options.js',
       format: 'iife',
@@ -47,6 +50,7 @@ export default [
     plugins: [
       resolve({ browser: true }),
       commonjs(),
+      typescript({ tsconfig: './tsconfig.json' }),
       production && terser(),
       copy({
         targets: [

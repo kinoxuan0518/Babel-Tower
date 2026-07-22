@@ -3,8 +3,8 @@
  * Centralized state management with caching
  */
 
-import { STORAGE_KEYS, FALLBACK_FX_TO_CNY } from '../../shared/constants.js';
-import { logger } from '../../shared/utils.js';
+import { STORAGE_KEYS, FALLBACK_FX_TO_CNY } from '../../shared/constants';
+import { logger } from '../../shared/utils';
 
 // In-memory state cache
 let state = {

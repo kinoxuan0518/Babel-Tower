@@ -3,7 +3,7 @@
  * Handles custom anchor unit configuration for price comparisons
  */
 
-import { STORAGE_KEYS } from '../shared/constants.js';
+import { STORAGE_KEYS } from '../shared/constants';
 
 /**
  * Initialize anchor unit UI

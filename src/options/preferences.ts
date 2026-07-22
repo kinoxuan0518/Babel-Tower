@@ -3,7 +3,7 @@
  * Handles general preferences (explain toggle, translation, quiet mode)
  */
 
-import { STORAGE_KEYS } from '../shared/constants.js';
+import { STORAGE_KEYS } from '../shared/constants';
 
 /**
  * Initialize preference toggles

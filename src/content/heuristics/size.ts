@@ -3,7 +3,7 @@
  * Generates cognitive insights for sizing without LLM
  */
 
-import { formatHalf } from '../../shared/utils.js';
+import { formatHalf } from '../../shared/utils';
 
 /**
  * Convert measurement to centimeters

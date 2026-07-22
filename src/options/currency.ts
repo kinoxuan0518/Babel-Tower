@@ -3,7 +3,7 @@
  * Handles currency selection and exchange rate display
  */
 
-import { CURRENCIES, STORAGE_KEYS } from '../shared/constants.js';
+import { CURRENCIES, STORAGE_KEYS } from '../shared/constants';
 
 /**
  * Render currency options in selector

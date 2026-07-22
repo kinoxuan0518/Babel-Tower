@@ -3,7 +3,7 @@
  * Handles user physical data (height, weight, foot length) and fit preferences
  */
 
-import { STORAGE_KEYS } from '../shared/constants.js';
+import { STORAGE_KEYS } from '../shared/constants';
 
 /**
  * Initialize physical measurements UI

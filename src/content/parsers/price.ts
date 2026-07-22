@@ -3,8 +3,8 @@
  * Extracts price information from text with precompiled regex
  */
 
-import { mapTokenToCurrency, resolveAmbiguousToken } from './currency.js';
-import { normalizeCurrency } from '../../shared/utils.js';
+import { mapTokenToCurrency, resolveAmbiguousToken } from './currency';
+import { normalizeCurrency } from '../../shared/utils';
 
 // Precompiled regex patterns for performance
 const NUM_PATTERN = '(?<num>(?:[0-9]{1,3}(?:[\\s.,\'][0-9]{3})+|[0-9]+)(?:[.,][0-9]{1,2})?|[0-9]+(?:,-)?)';

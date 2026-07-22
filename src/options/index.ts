@@ -3,20 +3,20 @@
  * Refactored: Modular architecture with separated concerns
  */
 
-import { STORAGE_KEYS, MSG_TYPES } from '../shared/constants.js';
+import { STORAGE_KEYS, MSG_TYPES } from '../shared/constants';
 import { 
   loadLanguageFile, applyI18n, i18n, switchLanguage, initLanguage 
-} from './language.js';
+} from './language';
 import { 
   renderCurrencyOptions, initCurrency, saveCurrency, resetCurrency, updateFxStatus, refreshFx 
-} from './currency.js';
+} from './currency';
 import { 
   detectProviderByEndpoint, applyPreset, setLlmInputsEnabled, initLlm, saveLlmConfig, 
   clearLlmConfig, testLlmConnection, listModels, handleLlmEnableToggle 
-} from './llm-config.js';
-import { initPhysical, savePhysical, clearPhysical } from './physical.js';
-import { initAnchor, saveAnchor, clearAnchor } from './anchor.js';
-import { initPreferences, saveExplainSettings, saveTranslationSettings, saveQuietMode, saveLlmPrefer } from './preferences.js';
+} from './llm-config';
+import { initPhysical, savePhysical, clearPhysical } from './physical';
+import { initAnchor, saveAnchor, clearAnchor } from './anchor';
+import { initPreferences, saveExplainSettings, saveTranslationSettings, saveQuietMode, saveLlmPrefer } from './preferences';
 
 const $ = (id) => document.getElementById(id);
 

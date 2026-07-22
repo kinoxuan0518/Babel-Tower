@@ -3,10 +3,10 @@
  * Unified LLM calling through background proxy (security)
  */
 
-import { MSG_TYPES, TIMING } from '../../shared/constants.js';
-import { extractJSON, SimpleCache, logger } from '../../shared/utils.js';
-import { getState } from '../state/index.js';
-import { generatePackHeuristic } from '../heuristics/index.js';
+import { MSG_TYPES, TIMING } from '../../shared/constants';
+import { extractJSON, SimpleCache, logger } from '../../shared/utils';
+import { getState } from '../state/index';
+import { generatePackHeuristic } from '../heuristics/index';
 
 // Response cache to avoid duplicate LLM calls
 const llmCache = new SimpleCache(TIMING.CACHE_TTL_MS);

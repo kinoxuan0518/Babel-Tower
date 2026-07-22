@@ -3,7 +3,7 @@
  * Handles UI language selection and i18n functionality
  */
 
-import { STORAGE_KEYS } from '../shared/constants.js';
+import { STORAGE_KEYS } from '../shared/constants';
 
 /**
  * @typedef {Object} LanguageOption

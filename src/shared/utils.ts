@@ -35,12 +35,15 @@ export function escapeHTML(str) {
  * Simple in-memory cache with TTL
  */
 export class SimpleCache {
+  private cache: Map<string, { data: any; timestamp: number }>;
+  private ttl: number;
+
   constructor(ttlMs = 24 * 60 * 60 * 1000) {
     this.cache = new Map();
     this.ttl = ttlMs;
   }
 
-  get(key) {
+  get(key: string) {
     const entry = this.cache.get(key);
     if (!entry) return null;
     if (Date.now() - entry.timestamp > this.ttl) {
@@ -50,11 +53,11 @@ export class SimpleCache {
     return entry.data;
   }
 
-  set(key, data) {
+  set(key: string, data: any) {
     this.cache.set(key, { data, timestamp: Date.now() });
   }
 
-  has(key) {
+  has(key: string) {
     return this.get(key) !== null;
   }
 
@@ -79,6 +82,7 @@ export class SimpleCache {
  */
 export function normalizeCurrency(code) {
   const upper = (code || '').toUpperCase().trim();
+  if (!upper) return 'CNY';
   return upper === 'RMB' ? 'CNY' : upper;
 }
 
